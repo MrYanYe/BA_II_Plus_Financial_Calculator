@@ -246,11 +246,12 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
      no XHR, no storage, no imports. Inlined at build time. -->
 <script src="script.js"></script>
 
-<!-- The one file that changes behaviour rather than appearance: restores the
-     real device's two-stage CE|C. Must come after script.js -- it reads that
-     file's top-level bindings through the shared global lexical scope. Inlined
-     at build time. -->
+<!-- Behaviour patches. Both must come after script.js: ce_c_behavior.js reads
+     that file's top-level bindings through the shared global lexical scope, and
+     panel_focus.js shadows methods on elements script.js has already queried.
+     Inlined at build time. -->
 <script src="../src/ce_c_behavior.js"></script>
+<script src="../src/panel_focus.js"></script>
 </body>
 </html>
 """
