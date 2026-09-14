@@ -9,8 +9,10 @@ Two outputs:
   build/page.html   The page skeleton with ONLY the calculator widget kept.
                     Everything else -- navbar, the "other calculators" carousel,
                     the marketing sections, the footer, and the ad/analytics
-                    tags -- is dropped. The widget markup itself is copied
-                    byte-for-byte from upstream; nothing inside it is rewritten.
+                    tags -- is dropped. The widget markup is copied byte-for-byte
+                    from upstream with exactly one addition: a .panel-dock div
+                    wrapped around the three worksheet panels so they stack
+                    instead of overlapping. See wrap_panels() for why.
 
   build/fonts.css   The Google Fonts @font-face sheet, rewritten to point at the
                     local woff2 copies in build/fonts/ instead of fonts.gstatic.com.
@@ -54,22 +56,74 @@ def styled(text: str) -> str:
     return f"{len(text):,}"
 
 
-def extract_element(html: str, element_id: str) -> str | None:
+def element_span(html: str, element_id: str) -> tuple[int, int] | None:
     """
-    Return the full outer HTML of <div id="..."> including its closing tag.
+    Return the (start, end) span of the element carrying the given id.
 
-    Uses div-depth counting rather than a regex so nested divs come out intact.
+    Matches whatever tag the element uses and counts depth of that same tag, so
+    nested elements of the same type come out intact. Regex alone would stop at
+    the first inner closing tag.
     """
-    start = re.search(rf'<div[^>]*\bid="{re.escape(element_id)}"', html)
-    if not start:
+    m = re.search(rf'<(\w+)[^>]*\bid="{re.escape(element_id)}"', html)
+    if not m:
         return None
+    tag = m.group(1)
 
     depth = 0
-    for m in re.finditer(r"<(/?)div\b[^>]*>", html[start.start():]):
-        depth += 1 if m.group(1) == "" else -1
+    for mm in re.finditer(rf"<(/?){tag}\b[^>]*>", html[m.start():]):
+        depth += 1 if mm.group(1) == "" else -1
         if depth == 0:
-            return html[start.start():start.start() + m.end()]
+            return (m.start(), m.start() + mm.end())
     return None
+
+
+def extract_element(html: str, element_id: str) -> str | None:
+    """Return the full outer HTML of the element with the given id."""
+    span = element_span(html, element_id)
+    return html[span[0]:span[1]] if span else None
+
+
+def wrap_panels(widget: str) -> str:
+    """
+    Wrap the three worksheet panels in a single .panel-dock container.
+
+    This is the ONLY structural change made to the widget, and it exists for one
+    reason: the panels do not reliably hide each other. openTVM() and openCF()
+    each hide the other two, but openRegOverlay() hides nothing -- so pressing
+    N and then STO leaves the TVM worksheet and the register overlay open at the
+    same time. Upstream that is harmless, because both sit in normal flow and
+    simply stack vertically inside the device. Once they are positioned, two
+    open panels would land in the same place and overlap.
+
+    Giving them a shared column means they stack, in DOM order, exactly as they
+    do upstream -- without touching script.js, which continues to show and hide
+    the same panels in the same circumstances.
+
+    The panels are contiguous siblings between the display and the keypad, which
+    is asserted below so a future upstream reshuffle fails loudly instead of
+    silently wrapping the wrong run of markup.
+    """
+    first = element_span(widget, "tvmPanel")
+    last = element_span(widget, "registerOverlay")
+    if not first or not last:
+        raise SystemExit("ERROR: could not locate the worksheet panels to wrap")
+
+    between = widget[first[0]:last[1]]
+    # Only the three known panels may sit in the wrapped run.
+    for other in ("tvmPanel", "cfPanel", "registerOverlay"):
+        if f'id="{other}"' not in between:
+            raise SystemExit(f"ERROR: #{other} is not inside the panel run")
+    for stray in ("id=\"display\"", "id=\"keypad\""):
+        if stray in between:
+            raise SystemExit(f"ERROR: {stray} found inside the panel run -- layout changed")
+
+    return (
+        widget[:first[0]]
+        + '<div class="panel-dock">\n'
+        + between
+        + "\n</div>"
+        + widget[last[1]:]
+    )
 
 
 def build_fonts_css() -> str:
@@ -203,7 +257,10 @@ def main() -> int:
     if not widget:
         print(f"ERROR: <div id={WIDGET_ID!r}> not found in upstream_raw/index.html", file=sys.stderr)
         return 1
-    print(f"Extracted <div id={WIDGET_ID!r}>  ({styled(widget)} chars)")
+    before = len(widget)
+    widget = wrap_panels(widget)
+    print(f"Extracted <div id={WIDGET_ID!r}>  ({styled(widget)} chars, "
+          f"+{len(widget) - before} for the panel dock)")
 
     # --- coverage check ---------------------------------------------------
     # script.js resolves its UI through getElementById. If the trim dropped any
