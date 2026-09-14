@@ -2,8 +2,8 @@
 """
 Verification -- check_readme_links.py
 
-Check that every in-document link in README.md resolves to an anchor that
-actually exists.
+Check that every in-document link and every relative file path in the prose
+documents resolves.
 
 This exists because the README's language toggle silently did nothing. The links
 pointed at `#中文` and a hand-written guess at the English heading's slug, and
@@ -13,9 +13,13 @@ in any renderer, it just does nothing when clicked.
 
 Slugging is also renderer-specific. GitHub, VS Code and GitLab disagree about how
 to slug a heading containing an em dash or CJK text, so a working `#heading-slug`
-in one viewer can be dead in another. The README therefore uses explicit
+in one viewer can be dead in another. The documents therefore use explicit
 `<a id="...">` anchors, which are identical everywhere, and this check verifies
 each link finds one.
+
+It also checks relative file paths written in the prose -- `docs/images/x.svg`,
+`src/y.css` -- because a diagram that fails to render in a README looks like a
+broken repository, and nothing else in the toolchain would notice.
 
 Usage:
     python tools/check_readme_links.py
@@ -28,49 +32,74 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-README = ROOT / "README.md"
+DOCS = [ROOT / "README.md", ROOT / "docs" / "ENGINEERING_GUIDE.md"]
 
 
-def main() -> int:
-    if not README.is_file():
-        print(f"ERROR: {README.name} not found", file=sys.stderr)
-        return 1
+def explicit_anchors(text: str) -> set[str]:
+    """Anchors we control: <a id="foo"></a>."""
+    return set(re.findall(r'<a\s+id="([^"]+)"', text))
 
-    text = README.read_text(encoding="utf-8")
 
-    # Explicit anchors we control: <a id="foo"></a>
-    explicit = set(re.findall(r'<a\s+id="([^"]+)"', text))
+def heading_slugs(text: str) -> set[str]:
+    """
+    Slugs a renderer would plausibly generate, as a fallback.
 
-    # Heading slugs a renderer would generate, as a fallback. Deliberately
-    # cautious -- lowercase, drop punctuation, spaces to hyphens -- so this
-    # accepts a link only if some renderer could plausibly resolve it.
-    headings = set()
+    Deliberately lenient -- lowercase, drop punctuation, spaces to hyphens -- so a
+    link is accepted if any common renderer could resolve it, and this never
+    fails a link that genuinely works somewhere.
+    """
+    slugs = set()
     for h in re.findall(r"(?m)^#{1,6}\s+(.+?)\s*$", text):
         slug = h.strip().lower()
         slug = re.sub(r"[^\w\s一-鿿-]", "", slug)
-        slug = re.sub(r"\s+", "-", slug)
-        headings.add(slug)
+        slugs.add(re.sub(r"\s+", "-", slug))
+    return slugs
 
-    links = re.findall(r"\]\(#([^)]+)\)", text)
-    if not links:
-        print("WARNING: no in-document links found -- did the README change format?")
-        return 0
 
-    known = explicit | headings
-    broken = [l for l in links if l not in known]
+def check_doc(path: Path) -> list[str]:
+    """Return problem descriptions for one document; empty means it is clean."""
+    text = path.read_text(encoding="utf-8")
+    rel = path.relative_to(ROOT)
+    known = explicit_anchors(text) | heading_slugs(text)
+    problems: list[str] = []
 
-    print(f"README.md: {len(links)} in-document link(s), "
-          f"{len(explicit)} explicit anchor(s)")
-    for link in sorted(set(links)):
-        status = "ok " if link in known else "DEAD"
-        source = "explicit" if link in explicit else ("heading slug" if link in headings else "-")
-        print(f"  {status}  #{link:<20} ({source})")
+    anchors = sorted(set(re.findall(r"\]\(#([^)]+)\)", text)))
+    for a in anchors:
+        if a not in known:
+            problems.append(f"{rel}: #{a} resolves to nothing")
 
-    if broken:
-        print(f"\nFAILED: {len(broken)} link(s) resolve to nothing: {broken}", file=sys.stderr)
+    # Relative paths in markdown links and images, e.g. [x](docs/images/y.svg)
+    paths = sorted(set(re.findall(r"!?\[[^\]]*\]\((?!https?:|#|mailto:)([^)]+)\)", text)))
+    images = set(re.findall(r"!\[[^\]]*\]\((?!#)([^)]+)\)", text))
+    for ref in paths:
+        target = (path.parent / ref.split("#")[0]).resolve()
+        if not target.exists():
+            kind = "image" if ref in images and not ref.startswith("http") else "file link"
+            problems.append(f"{rel}: {kind} does not exist: {ref}")
+
+    print(f"  {rel}: {len(anchors)} anchor link(s), {len(paths)} relative path(s)")
+    return problems
+
+
+def main() -> int:
+    missing = [d for d in DOCS if not d.is_file()]
+    if missing:
+        print(f"ERROR: not found: {[str(m.relative_to(ROOT)) for m in missing]}", file=sys.stderr)
         return 1
 
-    print("\nPASSED: every in-document link resolves")
+    print("Checking in-document links and relative paths")
+    problems: list[str] = []
+    for doc in DOCS:
+        problems += check_doc(doc)
+
+    if problems:
+        print()
+        for p in problems:
+            print(f"  FAIL  {p}", file=sys.stderr)
+        print(f"\nFAILED: {len(problems)} unresolved reference(s)")
+        return 1
+
+    print("\nPASSED: every link, anchor and relative path resolves")
     return 0
 
 

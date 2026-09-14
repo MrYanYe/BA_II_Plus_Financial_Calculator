@@ -15,6 +15,9 @@ network.
 
 **The deliverable is one file: [`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html) (199 KB).**
 
+New here and want to change something? Read the **[Engineering Guide](docs/ENGINEERING_GUIDE.md)** —
+it covers the pipeline, where each kind of change belongs, and the traps that are not obvious.
+
 ---
 
 ## Quick start
@@ -23,11 +26,17 @@ Download `BAII_Plus_Financial_Calculator_Offline_2026.html` and open it. That is
 procedure. It works from a USB stick, an email attachment, a phone's Downloads folder, or a
 path with spaces and non-ASCII characters — the file references nothing outside itself.
 
-Verified working in Chrome, Edge, Firefox and Safari, on Windows, macOS, Linux, iOS and Android.
+Verified — not assumed — by [`tools/verify_compatibility.py`](tools/verify_compatibility.py):
+identical behaviour on **Chromium, Firefox and WebKit** (the engines behind Chrome/Edge, Firefox
+and Safari), under **iPhone, iPad, Pixel and Galaxy** device emulation, and after copying to a
+directory whose name contains spaces and non-ASCII characters. No absolute paths anywhere, so it
+runs from wherever you put it.
 
 ---
 
 ## What this is
+
+![Build pipeline](docs/images/pipeline.svg)
 
 The original page is a marketing site wrapped around a calculator: navbar, a carousel of other
 calculators, five content sections, testimonials, a footer, Google AdSense, Google Tag Manager
@@ -89,6 +98,8 @@ This was measured against the live site, not assumed. See [Verification](#verifi
    panel plus a 20px gap needs 320px a side — 420 + 640 + 32 = 1092, rounded up for slack. Media
    queries re-evaluate on every resize, so dragging the window across the threshold switches
    modes with no JavaScript involved.
+
+   ![Worksheet placement](docs/images/layout.svg)
 
    The CSS lives in [`src/offline_overrides.css`](src/offline_overrides.css) with the reasoning
    documented inline.
@@ -170,10 +181,15 @@ BAII_Plus_Financial_Calculator_Offline_2026.html   the deliverable — one self-
 │   ├── verify_visual.py        font, geometry and pixel diff against the live site
 │   ├── verify_panel_layout.py  worksheet placement and live resize behaviour
 │   ├── verify_ce_c.py          two-stage CE|C, the one deliberate behaviour difference
-│   └── check_readme_links.py   every in-document link in this file resolves
+│   ├── verify_compatibility.py paths, cross-engine, mobile, relocation
+│   └── check_readme_links.py   every in-document link in this and the guide resolves
 │
 ├── upstream_raw/               pristine mirror of what the live site serves
-└── docs/                       BA II Plus guidebooks (EN, ZH)
+│
+└── docs/
+    ├── ENGINEERING_GUIDE.md    how it works and what will bite you (EN, ZH)
+    ├── images/                 the two diagrams above
+    └── BAIIPlus_Guidebook_*.pdf
 ```
 
 The `src/` / `build/` split is deliberate. `build/` holds only generated files, so it is
@@ -223,6 +239,7 @@ python tools/verify_parity.py        # behaviour
 python tools/verify_visual.py        # fonts, geometry, pixels
 python tools/verify_panel_layout.py  # worksheet placement (local only, no network)
 python tools/verify_ce_c.py          # two-stage CE|C (local only, no network)
+python tools/verify_compatibility.py # portability, engines, mobile, relocation (local only)
 python tools/check_readme_links.py   # this file's own links (local only, no network)
 ```
 
@@ -242,6 +259,12 @@ Results at the time of writing:
 | TVM + register open together (`N` then `STO`) | both visible, stacked, no overlap |
 | Panel below the fold | document scrolls far enough to reach it |
 | Panel placement on live resize | switches both ways without a reload |
+| Engines — Chromium, Firefox, WebKit | identical display output, 34 states; fonts applied on all three |
+| Mobile — iPhone 13 / SE, iPad, Pixel 5, Galaxy S9+ | no horizontal overflow, taps register, fonts load |
+| Absolute paths in artifact, sources, tools | none |
+| File references vs on-disk spelling | 9/9 exact case (safe on case-sensitive Linux) |
+| Filenames legal on Windows, macOS and Linux | 32/32; longest path 74 chars, well under the 260 limit |
+| Copied to a sparse, non-ASCII path | identical behaviour, fonts still load |
 
 The 10/255 residual is the browser anti-aliasing a curved edge fractionally differently — it is
 below the ~25/255 just-noticeable difference and not visible. The harness fails above 16/255.
@@ -428,10 +451,15 @@ BAII_Plus_Financial_Calculator_Offline_2026.html   成品 —— 单个自包含
 │   ├── verify_visual.py        与线上对比字体、几何与像素
 │   ├── verify_panel_layout.py  检查工作表面板位置与拖动窗口时的实时切换
 │   ├── verify_ce_c.py          两段式 CE|C，唯一一处有意的行为差异
-│   └── check_readme_links.py   检查本文档内所有跳转链接都能正确跳转
+│   ├── verify_compatibility.py 路径、跨浏览器、移动端、换位置后的可用性
+│   └── check_readme_links.py   检查本文档与工程指南内所有跳转链接
 │
 ├── upstream_raw/               线上资源的原始镜像
-└── docs/                       BA II Plus 使用手册（英文、中文）
+│
+└── docs/
+    ├── ENGINEERING_GUIDE.md    工程介绍与工作流（英文、中文）
+    ├── images/                 上面两张图
+    └── BAIIPlus_Guidebook_*.pdf
 ```
 
 `src/` 与 `build/` 的划分是有意为之。`build/` 里只有生成的文件，因此被 gitignore，
@@ -478,6 +506,7 @@ python tools/verify_parity.py        # 行为
 python tools/verify_visual.py        # 字体、几何、像素
 python tools/verify_panel_layout.py  # 工作表面板位置（纯本地，无需联网）
 python tools/verify_ce_c.py          # 两段式 CE|C（纯本地，无需联网）
+python tools/verify_compatibility.py # 路径可移植性、浏览器、移动端、换位置（纯本地）
 python tools/check_readme_links.py   # 本文档自身的跳转链接（纯本地，无需联网）
 ```
 
@@ -497,6 +526,12 @@ python tools/check_readme_links.py   # 本文档自身的跳转链接（纯本�
 | TVM 与寄存器面板同时打开（`N` 后按 `STO`） | 两者均可见、堆叠、不重叠 |
 | 面板位于首屏之外时 | 页面可滚动到该面板 |
 | 拖动窗口时的面板位置 | 来回切换均正常，无需刷新 |
+| 浏览器 —— Chromium、Firefox、WebKit | 显示输出完全一致（34 个状态）；三者字体均生效 |
+| 移动端 —— iPhone 13 / SE、iPad、Pixel 5、Galaxy S9+ | 无横向溢出、点击有效、字体加载正常 |
+| 成品 / 源码 / 脚本中的绝对路径 | 无 |
+| 文件引用与实际文件名拼写 | 9/9 大小写完全一致（可安全复制到区分大小写的 Linux） |
+| 文件名在 Windows / macOS / Linux 上合法 | 32/32；最长路径 74 字符，远低于 260 上限 |
+| 复制到含空格与非 ASCII 的路径 | 行为完全一致，字体正常加载 |
 
 这 10/255 的残差来自浏览器对曲线边缘的抗锯齿处理存在细微差别 —— 低于约 25/255 的可察觉阈值，
 肉眼不可见。脚本在超过 16/255 时会判定失败。
