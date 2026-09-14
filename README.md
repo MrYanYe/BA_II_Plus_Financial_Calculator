@@ -1,17 +1,19 @@
 <div align="center">
 
-**English** &nbsp;|&nbsp; [中文](#中文)
+[English](#readme-en) &nbsp;|&nbsp; [中文](#readme-zh)
 
 </div>
+
+<a id="readme-en"></a>
 
 # BA II Plus Financial Calculator — Offline Edition
 
 A faithful offline copy of the calculator at
-[baiiplusfinancialcalculator.com](https://baiiplusfinancialcalculator.com/), bundled into one
+[https://baiiplusfinancialcalculator.com/](https://baiiplusfinancialcalculator.com/), bundled into one
 self-contained HTML file. Double-click it and the calculator runs — no server, no install, no
 network.
 
-**The deliverable is one file: [`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html) (188 KB).**
+**The deliverable is one file: [`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html) (190 KB).**
 
 ---
 
@@ -49,7 +51,7 @@ Dropped: navbar, carousel, all marketing sections, footer, every ad and analytic
 
 ---
 
-## Fidelity — what matches, and the one thing that does not
+## Fidelity — what matches, and the two things that do not
 
 This was measured against the live site, not assumed. See [Verification](#verification).
 
@@ -63,21 +65,41 @@ This was measured against the live site, not assumed. See [Verification](#verifi
 - Widget size and horizontal position, to sub-pixel accuracy
 - Rendering — pixel-identical within anti-aliasing tolerance
 
-**Deliberately different — one change:**
+**Deliberately different — two changes, both in one file:**
 
-The calculator is **centred in the viewport**. Upstream it sits at the top of a long page;
-with everything below it removed, centring is what makes it look like a finished tool rather
-than a page that failed to load. This is the only intentional layout deviation, and it lives
-in a single file: [`src/offline_overrides.css`](src/offline_overrides.css), with the reasoning
-documented inline. Delete that file from the build and you get the upstream top-aligned layout.
+Both live in [`src/offline_overrides.css`](src/offline_overrides.css), with the reasoning
+documented inline. Delete that file from the build and you get the upstream layout back, exactly.
+
+1. **The device is centred in the viewport.** Upstream it sits at the top of a long page; with
+   everything below it removed, centring is what makes it look like a finished tool rather than
+   a page that failed to load.
+
+2. **Worksheet panels open beside the device, not inside it.** Upstream, opening TVM / CF /
+   STO-RCL expands a panel between the display and the keypad, pushing the keypad down and off
+   the screen. Here the panel floats to the **left** of the device instead, top-aligned, and the
+   device does not move at all. All three panels share the same slot — they are mutually
+   exclusive, so they can never collide.
+
+   This is responsive, and switches live as you resize:
+
+   | Window | Panel goes |
+   |---|---|
+   | Landscape, ≥1120px wide | Left of the device; device stays put |
+   | Landscape, narrower, or any portrait | Below the display, exactly as upstream |
+
+   The 1120px figure is derived, not guessed: the device is 420px and the page adds 2rem of
+   side padding, so a centred device has `(100vw − 32 − 420) / 2` on each side, and a 300px
+   panel plus a 20px gap needs 320px a side — 420 + 640 + 32 = 1092, rounded up for slack. Media
+   queries re-evaluate on every resize, so dragging the window across the threshold switches
+   modes with no JavaScript involved.
 
 Two details worth knowing:
 
 - On screens ≤480px the device goes full-bleed, matching upstream's own mobile design. Its
   width there is 358px at a 390px viewport — exactly what the live site uses.
-- Opening a worksheet panel makes the device taller than a 768px laptop screen. The centring
-  uses `justify-content: safe center`, which degrades to top-aligned in that case, so nothing
-  is pushed above the scroll origin and every key stays reachable.
+- When a panel does stack (narrow or portrait), the device grows taller than a 768px laptop
+  screen. The centring uses `justify-content: safe center`, which degrades to top-aligned in
+  that case, so nothing is pushed above the scroll origin and every key stays reachable.
 
 ---
 
@@ -101,7 +123,9 @@ BAII_Plus_Financial_Calculator_Offline_2026.html   the deliverable — one self-
 │   ├── extract_calculator.py   isolate the widget into build/
 │   ├── build_single_file.py    inline everything into the deliverable
 │   ├── verify_parity.py        behaviour diff against the live site
-│   └── verify_visual.py        font, geometry and pixel diff against the live site
+│   ├── verify_visual.py        font, geometry and pixel diff against the live site
+│   ├── verify_panel_layout.py  worksheet placement and live resize behaviour
+│   └── check_readme_links.py   every in-document link in this file resolves
 │
 ├── upstream_raw/               pristine mirror of what the live site serves
 └── docs/                       BA II Plus guidebooks (EN, ZH)
@@ -123,8 +147,8 @@ Requires Python 3.10+ (3.11 tested). `Pillow` for the favicon, `playwright` for 
 
 ```bash
 python tools/fetch_upstream.py      # optional — only to re-sync from the live site
-python tools/extract_calculator.py  # upstream_raw/ -> src/
-python tools/build_single_file.py   # src/ -> the single-file artifact
+python tools/extract_calculator.py  # upstream_raw/ -> build/
+python tools/build_single_file.py   # build/ -> the single-file artifact
 ```
 
 The build is **byte-reproducible**: two consecutive runs produce the same SHA256, on any
@@ -142,14 +166,18 @@ upstream is picked up automatically rather than silently re-serving a stale copy
 
 ---
 
+<a id="verification"></a>
+
 ## Verification
 
 Both harnesses drive the live site and the offline file side by side and compare them. They
 need network access for the live half.
 
 ```bash
-python tools/verify_parity.py    # behaviour
-python tools/verify_visual.py    # fonts, geometry, pixels
+python tools/verify_parity.py        # behaviour
+python tools/verify_visual.py        # fonts, geometry, pixels
+python tools/verify_panel_layout.py  # worksheet placement (local only, no network)
+python tools/check_readme_links.py   # this file's own links (local only, no network)
 ```
 
 Results at the time of writing:
@@ -162,6 +190,9 @@ Results at the time of writing:
 | Fonts embedded and applied | both families, metrics match live exactly |
 | Widget size and X position (3 viewports) | matches live, ≤0.5px |
 | Pixels (3 viewports) | worst 10/255 on 6 pixels; all on the LCD's rounded corners |
+| Worksheet placement | left of the device when there is room, stacked when there is not |
+| Device position while a panel opens | unchanged, to 0.01px, for all three panels |
+| Panel layout on live resize | switches both ways without a reload |
 
 The 10/255 residual is the browser anti-aliasing a curved edge fractionally differently — it is
 below the ~25/255 just-noticeable difference and not visible. The harness fails above 16/255.
@@ -194,16 +225,18 @@ independent web emulation of it, and so is the upstream site.
 
 <div align="center">
 
-[English](#ba-ii-plus-financial-calculator--offline-edition) &nbsp;|&nbsp; **中文**
+[English](#readme-en) &nbsp;|&nbsp; [中文](#readme-zh)
 
 </div>
 
+<a id="readme-zh"></a>
+
 # BA II Plus 金融计算器 — 离线版
 
-把 [baiiplusfinancialcalculator.com](https://baiiplusfinancialcalculator.com/) 上的计算器
+把 [https://baiiplusfinancialcalculator.com/](https://baiiplusfinancialcalculator.com/) 上的计算器
 完整搬到本地，打包成一个自包含的 HTML 文件。双击即用 —— 不需要服务器、不需要安装、不需要联网。
 
-**成品只有一个文件：[`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html)（188 KB）。**
+**成品只有一个文件：[`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html)（190 KB）。**
 
 ---
 
@@ -239,9 +272,9 @@ independent web emulation of it, and so is the upstream site.
 
 ---
 
-## 还原度 —— 哪些一致，以及唯一一处不一致
+## 还原度 —— 哪些一致，以及仅有的两处不一致
 
-以下结论都是跟线上网站实测对比得出的，不是推测。详见[验证](#验证)。
+以下结论都是跟线上网站实测对比得出的，不是推测。详见[验证](#verification-zh)。
 
 **与线上完全一致：**
 
@@ -252,18 +285,35 @@ independent web emulation of it, and so is the upstream site.
 - 计算器尺寸与水平位置，亚像素级一致
 - 渲染效果 —— 在抗锯齿容差内像素级一致
 
-**有意为之的差异 —— 只有一处：**
+**有意为之的差异 —— 两处，都在同一个文件里：**
 
-计算器**在视口内垂直居中**。线上它位于长页面顶部；下方内容全部移除后，居中才能让它看起来像一个
-完整的工具，而不是一个没加载完的页面。这是唯一的布局改动，且只存在于一个文件里：
-[`src/offline_overrides.css`](src/offline_overrides.css)，文件内注明了理由。
-把该文件从构建中移除，即可得到与线上一致的顶部对齐布局。
+两处改动都写在 [`src/offline_overrides.css`](src/offline_overrides.css)，文件内注明了理由。
+把该文件从构建中移除，即可完全恢复线上布局。
+
+1. **计算器在视口内垂直居中。** 线上它位于长页面顶部；下方内容全部移除后，居中才能让它看起来像
+   一个完整的工具，而不是一个没加载完的页面。
+
+2. **工作表面板在计算器旁边展开，而不是在它内部。** 线上打开 TVM / CF / STO-RCL 时，面板会插在
+   显示屏和键盘之间，把键盘往下挤。这里改为浮动在计算器**左侧**、与其顶部对齐，计算器本身完全
+   不动。三个面板共用同一个位置 —— 它们互斥，不会同时出现。
+
+   这个布局是响应式的，拖动窗口时会实时切换：
+
+   | 窗口情况 | 面板位置 |
+   |---|---|
+   | 横屏且宽度 ≥1120px | 计算器左侧，计算器原地不动 |
+   | 横屏但更窄，或任何竖屏 | 显示屏下方，与线上完全一致 |
+
+   1120px 这个阈值是算出来的，不是拍的：计算器宽 420px，页面左右各 1rem 内边距，因此居中的
+   计算器左右各有 `(100vw − 32 − 420) / 2` 的空间；300px 的面板加 20px 间距需要一侧 320px，
+   即 420 + 640 + 32 = 1092，向上取整留些余量。媒体查询在每次尺寸变化时都会重新求值，因此拖动
+   窗口跨越阈值时会实时切换，完全不涉及 JavaScript。
 
 两个值得注意的细节：
 
 - 屏幕宽度 ≤480px 时，计算器变为全宽铺满，这与上游自己的移动端设计一致。在 390px 视口下宽度为
   358px —— 和线上完全相同。
-- 打开工作表面板后，计算器会比 768px 高的笔记本屏幕更高。居中使用了
+- 当面板确实需要堆叠时（窄屏或竖屏），计算器会比 768px 高的笔记本屏幕更高。居中使用了
   `justify-content: safe center`，这种情况下会自动退化为顶部对齐，因此不会有内容被顶到滚动起点
   之上，所有按键都能按到。
 
@@ -289,7 +339,9 @@ BAII_Plus_Financial_Calculator_Offline_2026.html   成品 —— 单个自包含
 │   ├── extract_calculator.py   提取出计算器到 build/
 │   ├── build_single_file.py    内联所有资源，产出成品
 │   ├── verify_parity.py        与线上逐键对比行为
-│   └── verify_visual.py        与线上对比字体、几何与像素
+│   ├── verify_visual.py        与线上对比字体、几何与像素
+│   ├── verify_panel_layout.py  检查工作表面板位置与拖动窗口时的实时切换
+│   └── check_readme_links.py   检查本文档内所有跳转链接都能正确跳转
 │
 ├── upstream_raw/               线上资源的原始镜像
 └── docs/                       BA II Plus 使用手册（英文、中文）
@@ -311,7 +363,7 @@ BAII_Plus_Financial_Calculator_Offline_2026.html   成品 —— 单个自包含
 
 ```bash
 python tools/fetch_upstream.py      # 可选 —— 仅在需要重新同步线上资源时运行
-python tools/extract_calculator.py  # upstream_raw/ -> src/
+python tools/extract_calculator.py  # upstream_raw/ -> build/
 python tools/build_single_file.py   # src/ -> 单文件成品
 ```
 
@@ -328,13 +380,17 @@ python tools/fetch_upstream.py --force && python tools/extract_calculator.py && 
 
 ---
 
+<a id="verification-zh"></a>
+
 ## 验证
 
 两个脚本都会同时驱动线上站点和离线文件并对比。线上部分需要联网。
 
 ```bash
-python tools/verify_parity.py    # 行为
-python tools/verify_visual.py    # 字体、几何、像素
+python tools/verify_parity.py        # 行为
+python tools/verify_visual.py        # 字体、几何、像素
+python tools/verify_panel_layout.py  # 工作表面板位置（纯本地，无需联网）
+python tools/check_readme_links.py   # 本文档自身的跳转链接（纯本地，无需联网）
 ```
 
 当前结果：
@@ -347,6 +403,9 @@ python tools/verify_visual.py    # 字体、几何、像素
 | 字体是否内嵌并生效 | 两套字体均生效，度量与线上完全一致 |
 | 计算器尺寸与 X 坐标（3 种视口） | 与线上一致，误差 ≤0.5px |
 | 像素（3 种视口） | 最差 6 个像素差 10/255，全部位于 LCD 圆角处 |
+| 工作表面板位置 | 放得下时在计算器左侧，放不下时堆叠在下方 |
+| 打开面板时计算器的位移 | 三个面板均为 0，精度 0.01px |
+| 拖动窗口时的面板布局 | 来回切换均正常，无需刷新 |
 
 这 10/255 的残差来自浏览器对曲线边缘的抗锯齿处理存在细微差别 —— 低于约 25/255 的可察觉阈值，
 肉眼不可见。脚本在超过 16/255 时会判定失败。
