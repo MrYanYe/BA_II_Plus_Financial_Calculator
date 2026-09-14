@@ -206,7 +206,11 @@ def main() -> int:
         # ---------------- live site ----------------
         print(f"Loading live site: {LIVE}")
         live = browser.new_page(viewport={"width": 1400, "height": 1000})
-        live.goto(LIVE, wait_until="networkidle", timeout=90_000)
+                    # domcontentloaded + an explicit wait for the widget, not
+                    # networkidle: the live page runs Google Tag Manager, AdSense
+                    # and Clarity, which keep polling, so the network never goes
+                    # idle and networkidle times out at random.
+        live.goto(LIVE, wait_until="domcontentloaded", timeout=90_000)
         live.wait_for_selector("#screen", timeout=30_000)
         live_states = run_sequences(live)
         live_widget = widget_html(live)

@@ -13,7 +13,7 @@ A faithful offline copy of the calculator at
 self-contained HTML file. Double-click it and the calculator runs — no server, no install, no
 network.
 
-**The deliverable is one file: [`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html) (198 KB).**
+**The deliverable is one file: [`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html) (199 KB).**
 
 ---
 
@@ -107,6 +107,10 @@ This was measured against the live site, not assumed. See [Verification](#verifi
    | `12 + 5`, press once | `0.00`, `+` gone | `12+0`, `+` kept |
    | then `=` | `0.00` | `12.00` |
    | press again | — | `0.00` |
+
+   Pressing it on an already-clear display does nothing at all — the real device just sits at
+   zero, and the engine's two display conventions (a raw expression while typing, a formatted
+   number otherwise) must not be allowed to show through as a flicker between `0` and `0.00`.
 
    A press, any other key, then a press is CE twice, not a C — the pair has to be consecutive.
    `2ND` + the same key is still `CLR WORK`, unchanged, and the worksheet modes (BGN, P/Y,
@@ -281,7 +285,7 @@ independent web emulation of it, and so is the upstream site.
 把 [https://baiiplusfinancialcalculator.com/](https://baiiplusfinancialcalculator.com/) 上的计算器
 完整搬到本地，打包成一个自包含的 HTML 文件。双击即用 —— 不需要服务器、不需要安装、不需要联网。
 
-**成品只有一个文件：[`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html)（198 KB）。**
+**成品只有一个文件：[`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html)（199 KB）。**
 
 ---
 
@@ -366,6 +370,10 @@ independent web emulation of it, and so is the upstream site.
    | 输入 `12 + 5`，按一次 | `0.00`，`+` 被丢弃 | `12+0`，`+` 保留 |
    | 接着按 `=` | `0.00` | `12.00` |
    | 再按一次 | — | `0.00` |
+
+   在已经清空的界面上按它不会有任何变化 —— 真机就是停在 0 不动；而引擎有两套显示约定
+   （输入过程中显示原始表达式、其余情况显示格式化数字），不能让两者的差异表现为 `0` 与 `0.00`
+   之间来回闪烁。
 
    按一次、中间按了别的键、再按一次，算两次 CE 而不是一次 C —— 必须是连续两次才算。
    `2ND` + 同一个键仍然是 `CLR WORK`，未作改动；各工作表模式（BGN、P/Y、FORMAT、AMORT）保持
