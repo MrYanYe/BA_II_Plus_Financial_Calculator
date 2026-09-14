@@ -1,0 +1,70 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   offline_overrides.css
+   ─────────────────────────────────────────────────────────────────────────
+   The only stylesheet in this project that is NOT taken verbatim from
+   baiiplusfinancialcalculator.com. styles.css is upstream, byte-for-byte, and
+   is what makes the calculator look identical. This file sits after it and
+   carries just the adjustments that only make sense for a standalone page.
+
+   Two changes, both explained below. Everything else is upstream.
+   ───────────────────────────────────────────────────────────────────────── */
+
+
+/* 1. Vertical centring.
+   ─────────────────────────────────────────────────────────────────────────
+   Upstream the widget sits at the top of the page because a navbar precedes it
+   and five marketing sections follow. Offline there is nothing above or below,
+   so the device is centred in the viewport instead.
+
+   .app-shell is already `min-height: 100vh; display: flex; flex-direction:
+   column`, so one property is enough to centre its only child.
+
+   `safe center` matters: the widget is ~672px tall with a worksheet panel open,
+   so on a 768px-tall laptop it overflows. Plain `center` would push the top of
+   the device out of reach -- the overflow goes above the scroll origin and
+   cannot be scrolled back to. `safe center` degrades to start alignment in that
+   case so everything stays reachable. The plain `center` line above it is the
+   fallback for browsers without `safe` support. */
+.app-shell {
+  min-height: 100vh;
+  min-height: 100dvh;          /* dvh tracks mobile URL-bar collapse */
+  justify-content: center;     /* fallback */
+  justify-content: safe center;
+}
+
+
+/* 2. Trim the hero padding while centring.
+   ─────────────────────────────────────────────────────────────────────────
+   Upstream is `4rem 1rem 3.5rem 1rem`, sized for a page that has a navbar
+   above it. 7.5rem of vertical padding pushes the ~672px device past the fold
+   on a 1366x768 screen, which would defeat the centring (safe center would
+   fall back to top-aligned and it would scroll). 2.5rem keeps generous
+   breathing room while letting the device fit and actually centre on common
+   laptop screens. Horizontal padding is untouched. */
+.hero-area {
+  padding: 2.5rem 1rem;
+}
+
+
+/* 3. Phones.
+   ─────────────────────────────────────────────────────────────────────────
+   Upstream already switches the device to a full-bleed, `min-height: 100vh`
+   panel at <=480px -- no border, no rounding, edge to edge. That is a
+   deliberate mobile design and is kept as-is. The hero padding just has to go,
+   otherwise the device is pushed off the bottom of the screen, and centring is
+   meaningless for something already viewport-height. */
+@media (max-width: 480px) {
+  .hero-area {
+    /* Vertical padding goes; the horizontal gutters stay. Upstream's 1rem side
+       padding is what gives the device its 358px width at a 390px viewport --
+       dropping it too would stretch the device to a full-bleed 390px and change
+       its proportions. Keeping it means the offline device is exactly the width
+       the live one is. */
+    padding: 0 1rem;
+    gap: 0;
+  }
+
+  .app-shell {
+    justify-content: flex-start;
+  }
+}
