@@ -135,8 +135,28 @@ def run_sequences(page: Page) -> dict[str, list[dict[str, str]]]:
 
 
 def widget_html(page: Page) -> str:
+    """
+    The widget's markup, with the offline-only .panel-dock wrapper unwrapped.
+
+    The dock is the one structural change this project makes -- it exists so the
+    panels stack instead of overlapping. Removing it before comparing means this
+    check still proves exactly what it always did: that every element upstream
+    ships inside #calculator is present, and that nothing else inside it was
+    rewritten.
+    """
     return normalise(
-        page.evaluate("() => document.getElementById('calculator').outerHTML")
+        page.evaluate(
+            """() => {
+                const el = document.getElementById('calculator').cloneNode(true);
+                const dock = el.querySelector('.panel-dock');
+                if (dock) {
+                    const parent = dock.parentNode;
+                    while (dock.firstChild) parent.insertBefore(dock.firstChild, dock);
+                    parent.removeChild(dock);
+                }
+                return el.outerHTML;
+            }"""
+        )
     )
 
 

@@ -2059,53 +2059,65 @@ body {
 }
 
 
-/* 4. Move the worksheet panels beside the device instead of inside it.
+/* 4. Move the worksheet panels outside the device.
    ─────────────────────────────────────────────────────────────────────────
    Upstream, opening TVM / CF / STO-RCL expands a panel between the display and
    the keypad, so the device grows downwards and the keypad is pushed off-screen.
-   Here the panel instead floats to the LEFT of the whole device, top-aligned
-   with it, and the device does not move at all.
+   Here the panels sit outside the device entirely -- to its left when there is
+   room, below it when there is not -- and the device itself never moves.
 
-   Three things make this work without touching script.js or the markup:
+   The device needs `position: relative` for the dock to be positioned against
+   it. Upstream sets neither position nor overflow on .calculator, so an
+   absolutely positioned child was already free to render outside it.
 
-   - The panels use .hidden for show/hide only. Nothing in script.js reads their
-     DOM position, so where they sit on screen is purely a styling concern.
-   - .calculator sets no `position` and no `overflow`, so an absolutely
-     positioned child is free to render outside it. `position: relative` below
-     simply makes the device the containing block.
-   - The three panels are mutually exclusive -- openTVM() hides CF and the
-     register overlay, openCF() hides the others -- so they can all share the
-     same slot without ever colliding.
+   Because the dock is absolutely positioned it is taken out of flow, which is
+   what keeps the device pinned: adding a panel changes nothing about the
+   device's own box. */
+.calculator {
+  position: relative;
+}
 
-   Responsive rule, as requested: side by side when there is genuinely room,
-   stacked underneath when there is not. Media queries re-evaluate on every
-   resize, so dragging the window switches modes live with no JavaScript.
+/* The dock is where the three panels stack. Upstream they are siblings in
+   normal flow, so opening a second panel just pushes the first down. Inside a
+   flex column that behaviour is preserved exactly: same order, same spacing,
+   and never an overlap. */
+.panel-dock {
+  position: absolute;
+  top: calc(100% + 20px);   /* below the whole device */
+  left: 0;
+  right: 0;                 /* match the device's width */
+  display: flex;
+  flex-direction: column;
+  gap: 11px;                /* upstream's .worksheet margin-bottom */
+  margin: 0;
+}
 
-   The width in the query is not arbitrary. The device is 420px and the page
-   adds 2rem of side padding, so a centred device has (100vw - 32 - 420) / 2 of
-   space on each side. With a 300px panel and a 20px gap it needs 320px a side:
+/* The panels carried margin-bottom for their in-flow life; the dock's gap
+   replaces it, otherwise every pair would be 22px apart instead of 11px. */
+.panel-dock > .worksheet,
+.panel-dock > .register-overlay {
+  margin-bottom: 0;
+}
+
+/* Beside the device when there is genuinely room.
+
+   The width is not arbitrary. The device is 420px and the page adds 2rem of
+   side padding, so a centred device has (100vw - 32 - 420) / 2 of space on each
+   side. A 300px dock plus a 20px gap needs 320px a side:
 
        420 + 2 * 320 + 32 = 1092px
 
    1120px leaves a little slack. `orientation: landscape` covers the portrait
    case explicitly, where the request was to stack regardless of width.
 
-   Below that threshold nothing is overridden, which is deliberate: the panels
-   fall back to exactly upstream's in-flow position below the display. That is
-   the right answer on a phone, where there is no room beside the device and
-   scrolling is already expected. */
+   Media queries re-evaluate on every resize, so dragging the window across the
+   threshold switches modes live with no JavaScript. */
 @media (orientation: landscape) and (min-width: 1120px) {
-  .calculator {
-    position: relative;
-  }
-
-  .worksheet,
-  .register-overlay {
-    position: absolute;
-    top: 0;
-    right: calc(100% + 20px);
+  .panel-dock {
+    top: 0;                    /* top-aligned with the device */
+    right: calc(100% + 20px);  /* out to its left */
+    left: auto;
     width: 300px;
-    margin-bottom: 0;
   }
 }
 
@@ -2135,7 +2147,8 @@ body {
                 </div>
 
                 <!-- ── TVM WORKSHEET PANEL ── -->
-                <section class="worksheet" id="tvmPanel" aria-label="TVM Worksheet" hidden>
+                <div class="panel-dock">
+<section class="worksheet" id="tvmPanel" aria-label="TVM Worksheet" hidden>
                     <div class="ws-header">
                         <span class="ws-title">TVM WORKSHEET</span>
                         <button class="ws-close" id="tvmClose" aria-label="Close TVM">✕</button>
@@ -2207,6 +2220,7 @@ body {
                     <div class="reg-grid" id="regGrid"></div>
                     <button class="reg-cancel" id="regCancel">Cancel</button>
                 </div>
+</div>
 
                 <!-- ── KEYPAD ── -->
                 <div class="keypad" id="keypad">

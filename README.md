@@ -57,35 +57,32 @@ This was measured against the live site, not assumed. See [Verification](#verifi
 
 **Identical to the live site:**
 
-- The widget markup, byte-for-byte (`styles.css` and `script.js` are the upstream files
-  unmodified; nothing inside the widget was rewritten)
+- `styles.css` and `script.js` are the upstream files unmodified
+- Every element upstream ships inside the widget is present, unrewritten
+- Which panels open and close, and when
 - Calculation results and display output across every mode tested
 - Fonts — `Space Grotesk` and `Share Tech Mono` are embedded, not substituted, so the LCD
   renders in the same typeface
 - Widget size and horizontal position, to sub-pixel accuracy
 - Rendering — pixel-identical within anti-aliasing tolerance
 
-**Deliberately different — two changes, both in one file:**
-
-Both live in [`src/offline_overrides.css`](src/offline_overrides.css), with the reasoning
-documented inline. Delete that file from the build and you get the upstream layout back, exactly.
+**Deliberately different — two changes:**
 
 1. **The device is centred in the viewport.** Upstream it sits at the top of a long page; with
    everything below it removed, centring is what makes it look like a finished tool rather than
    a page that failed to load.
 
-2. **Worksheet panels open beside the device, not inside it.** Upstream, opening TVM / CF /
-   STO-RCL expands a panel between the display and the keypad, pushing the keypad down and off
-   the screen. Here the panel floats to the **left** of the device instead, top-aligned, and the
-   device does not move at all. All three panels share the same slot — they are mutually
-   exclusive, so they can never collide.
+2. **Worksheet panels sit outside the device, not inside it.** Upstream, opening TVM / CF /
+   STO-RCL expands a panel between the display and the keypad, so the device grows downwards and
+   pushes the keypad off-screen. Here the panels go to the **left** of the device, top-aligned,
+   or **below the whole device** when there is no room beside it. The device itself never moves.
 
    This is responsive, and switches live as you resize:
 
-   | Window | Panel goes |
+   | Window | Panels go |
    |---|---|
    | Landscape, ≥1120px wide | Left of the device; device stays put |
-   | Landscape, narrower, or any portrait | Below the display, exactly as upstream |
+   | Landscape, narrower, or any portrait | Below the whole device; device still stays put |
 
    The 1120px figure is derived, not guessed: the device is 420px and the page adds 2rem of
    side padding, so a centred device has `(100vw − 32 − 420) / 2` on each side, and a 300px
@@ -93,13 +90,27 @@ documented inline. Delete that file from the build and you get the upstream layo
    queries re-evaluate on every resize, so dragging the window across the threshold switches
    modes with no JavaScript involved.
 
+   The CSS lives in [`src/offline_overrides.css`](src/offline_overrides.css) with the reasoning
+   documented inline.
+
+**One structural change to the markup.** The three panels are wrapped in a single
+`.panel-dock` div, added by the extractor. It is needed because **the panels do not reliably
+hide each other**: `openTVM()` and `openCF()` each hide the other two, but `openRegOverlay()`
+hides nothing — so pressing `N` and then `STO` leaves the TVM worksheet and the register
+overlay open at the same time. Upstream that is harmless: both sit in normal flow and simply
+stack down the page. Once positioned, two open panels would land in the same spot and overlap.
+The dock gives them a shared column so they stack in DOM order, exactly as upstream.
+
+Nothing else is structural: `script.js` is untouched, and still shows and hides the same panels
+in the same circumstances. The parity check unwraps the dock before comparing markup against
+the live site, so it still proves everything upstream ships is present and unrewritten.
+
 Two details worth knowing:
 
 - On screens ≤480px the device goes full-bleed, matching upstream's own mobile design. Its
   width there is 358px at a 390px viewport — exactly what the live site uses.
-- When a panel does stack (narrow or portrait), the device grows taller than a 768px laptop
-  screen. The centring uses `justify-content: safe center`, which degrades to top-aligned in
-  that case, so nothing is pushed above the scroll origin and every key stays reachable.
+- Panels are positioned rather than in-flow, so they never make the page taller. When one sits
+  below the fold the document still scrolls far enough to reach it — verified, not assumed.
 
 ---
 
@@ -184,15 +195,17 @@ Results at the time of writing:
 
 | Check | Result |
 |---|---|
-| Widget markup, live vs offline | identical (10,282 chars normalised) |
+| Widget markup, live vs offline | identical (10,282 chars normalised, dock unwrapped) |
 | Behaviour — 25 key sequences, 109 display states | identical |
 | Network requests while running all sequences | zero |
 | Fonts embedded and applied | both families, metrics match live exactly |
 | Widget size and X position (3 viewports) | matches live, ≤0.5px |
 | Pixels (3 viewports) | worst 10/255 on 6 pixels; all on the LCD's rounded corners |
-| Worksheet placement | left of the device when there is room, stacked when there is not |
+| Worksheet placement | left of the device when there is room, below the whole device when there is not |
 | Device position while a panel opens | unchanged, to 0.01px, for all three panels |
-| Panel layout on live resize | switches both ways without a reload |
+| TVM + register open together (`N` then `STO`) | both visible, stacked, no overlap |
+| Panel below the fold | document scrolls far enough to reach it |
+| Panel placement on live resize | switches both ways without a reload |
 
 The 10/255 residual is the browser anti-aliasing a curved edge fractionally differently — it is
 below the ~25/255 just-noticeable difference and not visible. The harness fails above 16/255.
@@ -278,44 +291,52 @@ independent web emulation of it, and so is the upstream site.
 
 **与线上完全一致：**
 
-- 计算器 DOM 结构逐字节一致（`styles.css` 与 `script.js` 为上游原文件未作任何改动，
-  组件内部标记也是原样照搬）
+- `styles.css` 与 `script.js` 为上游原文件，未作任何改动
+- 上游放在组件里的每一个元素都还在，且未被改写
+- 哪些面板在什么情况下打开、关闭
 - 所有已测模式下的计算结果与显示输出
 - 字体 —— `Space Grotesk` 与 `Share Tech Mono` 是内嵌的，不是替代字体，LCD 显示的是同一种字形
 - 计算器尺寸与水平位置，亚像素级一致
 - 渲染效果 —— 在抗锯齿容差内像素级一致
 
-**有意为之的差异 —— 两处，都在同一个文件里：**
-
-两处改动都写在 [`src/offline_overrides.css`](src/offline_overrides.css)，文件内注明了理由。
-把该文件从构建中移除，即可完全恢复线上布局。
+**有意为之的差异 —— 两处：**
 
 1. **计算器在视口内垂直居中。** 线上它位于长页面顶部；下方内容全部移除后，居中才能让它看起来像
    一个完整的工具，而不是一个没加载完的页面。
 
-2. **工作表面板在计算器旁边展开，而不是在它内部。** 线上打开 TVM / CF / STO-RCL 时，面板会插在
-   显示屏和键盘之间，把键盘往下挤。这里改为浮动在计算器**左侧**、与其顶部对齐，计算器本身完全
-   不动。三个面板共用同一个位置 —— 它们互斥，不会同时出现。
+2. **工作表面板在计算器外部，而不是内部。** 线上打开 TVM / CF / STO-RCL 时，面板会插在显示屏和
+   键盘之间，把键盘往下挤。这里改为放在计算器**左侧**、与其顶部对齐；放不下时则放在**整个计算器
+   的下方**。计算器本身始终原地不动。
 
    这个布局是响应式的，拖动窗口时会实时切换：
 
    | 窗口情况 | 面板位置 |
    |---|---|
    | 横屏且宽度 ≥1120px | 计算器左侧，计算器原地不动 |
-   | 横屏但更窄，或任何竖屏 | 显示屏下方，与线上完全一致 |
+   | 横屏但更窄，或任何竖屏 | 整个计算器的下方，计算器依然原地不动 |
 
    1120px 这个阈值是算出来的，不是拍的：计算器宽 420px，页面左右各 1rem 内边距，因此居中的
    计算器左右各有 `(100vw − 32 − 420) / 2` 的空间；300px 的面板加 20px 间距需要一侧 320px，
    即 420 + 640 + 32 = 1092，向上取整留些余量。媒体查询在每次尺寸变化时都会重新求值，因此拖动
    窗口跨越阈值时会实时切换，完全不涉及 JavaScript。
 
+   CSS 写在 [`src/offline_overrides.css`](src/offline_overrides.css) 中，文件内注明了理由。
+
+**一处结构性改动。** 三个面板被包进一个 `.panel-dock` 容器，由提取脚本添加。之所以需要它，是因为
+**这三个面板并不会可靠地互相隐藏**：`openTVM()` 和 `openCF()` 都会关掉另外两个，但
+`openRegOverlay()` 什么都不关 —— 所以先按 `N` 再按 `STO`，TVM 工作表和寄存器面板会同时打开。
+线上这没问题：两者都在正常文档流里，直接往下堆叠即可。但一旦改成定位布局，两个同时打开的面板就会
+落在同一个位置而重叠。这个容器给它们一列共用的空间，让它们按 DOM 顺序堆叠，与线上表现一致。
+
+除此之外没有任何结构性改动：`script.js` 未作改动，面板的显示与隐藏时机与线上完全一致。行为对比
+脚本会在比对前先把这个容器"拆掉"，因此仍然能证明上游组件里的每个元素都存在且未被改写。
+
 两个值得注意的细节：
 
 - 屏幕宽度 ≤480px 时，计算器变为全宽铺满，这与上游自己的移动端设计一致。在 390px 视口下宽度为
   358px —— 和线上完全相同。
-- 当面板确实需要堆叠时（窄屏或竖屏），计算器会比 768px 高的笔记本屏幕更高。居中使用了
-  `justify-content: safe center`，这种情况下会自动退化为顶部对齐，因此不会有内容被顶到滚动起点
-  之上，所有按键都能按到。
+- 面板是定位而非文档流布局，因此不会撑高页面。当面板位于首屏之外时，页面依然能滚动到它 ——
+  这一点是实测验证过的，不是想当然。
 
 ---
 
@@ -397,15 +418,17 @@ python tools/check_readme_links.py   # 本文档自身的跳转链接（纯本�
 
 | 检查项 | 结果 |
 |---|---|
-| 计算器 DOM 结构，线上 vs 离线 | 完全一致（规范化后 10,282 字符） |
+| 计算器 DOM 结构，线上 vs 离线 | 完全一致（规范化后 10,282 字符，比对前先拆掉 dock 容器） |
 | 行为 —— 25 组按键序列、109 个显示状态 | 完全一致 |
 | 跑完所有序列期间发起的网络请求 | 0 次 |
 | 字体是否内嵌并生效 | 两套字体均生效，度量与线上完全一致 |
 | 计算器尺寸与 X 坐标（3 种视口） | 与线上一致，误差 ≤0.5px |
 | 像素（3 种视口） | 最差 6 个像素差 10/255，全部位于 LCD 圆角处 |
-| 工作表面板位置 | 放得下时在计算器左侧，放不下时堆叠在下方 |
+| 工作表面板位置 | 放得下时在计算器左侧，放不下时在整个计算器下方 |
 | 打开面板时计算器的位移 | 三个面板均为 0，精度 0.01px |
-| 拖动窗口时的面板布局 | 来回切换均正常，无需刷新 |
+| TVM 与寄存器面板同时打开（`N` 后按 `STO`） | 两者均可见、堆叠、不重叠 |
+| 面板位于首屏之外时 | 页面可滚动到该面板 |
+| 拖动窗口时的面板位置 | 来回切换均正常，无需刷新 |
 
 这 10/255 的残差来自浏览器对曲线边缘的抗锯齿处理存在细微差别 —— 低于约 25/255 的可察觉阈值，
 肉眼不可见。脚本在超过 16/255 时会判定失败。
