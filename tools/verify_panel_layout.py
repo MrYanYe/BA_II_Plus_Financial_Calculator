@@ -10,12 +10,13 @@ Six checks:
 
   1. placed     Wide landscape: the dock is entirely to the left of the device
                 and top-aligned with it. Narrow or portrait: the dock is entirely
-                below the device.
+                below the device. (STO/RCL no longer open the register overlay --
+                they are keypad-driven offline -- so only TVM and CF are checked
+                here; verify_sto_rcl.py covers the register keys.)
   2. still      Opening each panel leaves the device's bounding box unchanged.
-  3. stacked    Pressing N then STO opens the TVM worksheet and the register
-                overlay at the same time -- upstream allows this, because
-                openRegOverlay() hides nothing. Both must be visible and their
-                boxes must not intersect.
+  3. stacked    Two visible panels stack rather than overlap. Forced directly:
+                the UI can no longer produce it, since STO/RCL stopped opening the
+                register overlay, but the dock exists to guarantee it.
   4. reachable  Whenever a panel is off the bottom of the viewport, the document
                 must actually scroll far enough to bring it into view.
   5. adjacent   A stacked panel sits right under the keypad, not under the
@@ -44,10 +45,11 @@ DEFAULT = ROOT / "BAII_Plus_Financial_Calculator_Offline_2026.html"
 #     python tools/verify_panel_layout.py path/to/artifact.html
 LOCAL = DEFAULT
 
+# STO/RCL no longer open the register overlay -- they are keypad-driven offline,
+# so that panel is unreachable by design. See verify_sto_rcl.py.
 PANELS = [
     ("tvm", "tvmPanel"),
     ("cf", "cfPanel"),
-    ("sto", "registerOverlay"),
 ]
 
 # How far a stacked panel may sit below the keypad. The device's own bottom
@@ -155,20 +157,25 @@ def main() -> int:
                 failures.append(f"#{panel_id} not left of the device (gap {gap:.1f}px)")
                 print(f"  FAIL  #{panel_id} gap {gap:.1f}px, top delta {top_delta:.1f}px")
 
-        # ---------- 3: two panels at once must stack, not overlap ----------
-        print("\n=== two panels open at once (N then STO) ===")
+        # ---------- 3: two visible panels must stack, not overlap ----------
+        # The UI can no longer produce this: STO and RCL stopped opening the
+        # register overlay, and openTVM()/openCF() already hide each other, so at
+        # most one panel is ever reachable. The dock exists to make overlap
+        # impossible regardless, so prove the property directly by forcing two
+        # visible rather than relying on a key sequence that no longer exists.
+        print("\n=== two panels visible at once stack (forced) ===")
         reset(page)
         press(page, "tvm")
         page.wait_for_timeout(250)
-        press(page, "sto")
-        page.wait_for_timeout(300)
+        page.evaluate("document.getElementById('registerOverlay').hidden = false;")
+        page.wait_for_timeout(200)
 
         tvm = rect(page, "#tvmPanel")
         reg = rect(page, "#registerOverlay")
         calc = rect(page, "#calculator")
 
         if tvm is None or reg is None:
-            failures.append("N then STO did not leave both panels open")
+            failures.append("could not get two panels visible")
             print(f"  FAIL  tvm={'open' if tvm else 'hidden'}, "
                   f"register={'open' if reg else 'hidden'}")
         elif overlaps(tvm, reg):
@@ -196,21 +203,21 @@ def main() -> int:
         page.wait_for_timeout(300)
         page.evaluate("window.scrollTo(0, 0)")
         page.wait_for_timeout(150)
-        reg = rect(page, "#registerOverlay")
+        pan = rect(page, "#tvmPanel")
         scrollable = page.evaluate(
             "() => document.documentElement.scrollHeight - window.innerHeight"
         )
-        if reg is None:
-            failures.append("register panel closed unexpectedly")
-            print("  FAIL  register panel closed")
-        elif reg["bottom"] <= 600:
-            print(f"  PASS  panel already visible (bottom {reg['bottom']:.0f})")
-        elif scrollable + 1 >= reg["bottom"] - 600:
-            print(f"  PASS  panel is {reg['bottom'] - 600:.0f}px below the fold, "
+        if pan is None:
+            failures.append("the TVM panel closed unexpectedly")
+            print("  FAIL  panel closed")
+        elif pan["bottom"] <= 600:
+            print(f"  PASS  panel already visible (bottom {pan['bottom']:.0f})")
+        elif scrollable + 1 >= pan["bottom"] - 600:
+            print(f"  PASS  panel is {pan['bottom'] - 600:.0f}px below the fold, "
                   f"page scrolls {scrollable:.0f}px -- reachable")
         else:
             failures.append("panel is off-screen and unreachable")
-            print(f"  FAIL  panel bottom {reg['bottom']:.0f} but page only scrolls "
+            print(f"  FAIL  panel bottom {pan['bottom']:.0f} but page only scrolls "
                   f"{scrollable:.0f}px -- unreachable")
         page.close()
 

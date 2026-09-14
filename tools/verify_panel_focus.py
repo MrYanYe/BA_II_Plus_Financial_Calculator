@@ -44,8 +44,9 @@ PANEL_KEYS = [
     ("clrTVM", "tvmPanel", "tvmFV"),   # the FV key carries data-action=clrTVM
     ("cf", "cfPanel", None),
     ("npv", "cfPanel", "cfRate"),
-    ("sto", "registerOverlay", None),
-    ("rcl", "registerOverlay", None),
+    # STO and RCL are absent on purpose: they no longer open a panel at all --
+    # they are keypad-driven offline -- so there is nothing for them to steal
+    # focus with. The register overlay has no inputs regardless.
 ]
 
 VIEWPORTS = {

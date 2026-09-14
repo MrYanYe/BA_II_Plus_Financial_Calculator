@@ -252,6 +252,7 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
      Inlined at build time. -->
 <script src="../src/ce_c_behavior.js"></script>
 <script src="../src/panel_focus.js"></script>
+<script src="../src/sto_rcl_behavior.js"></script>
 </body>
 </html>
 """

@@ -14,11 +14,12 @@ Three checks:
               layer, STO/RCL, TVM, cash flow (NPV/IRR), amortisation, P/Y, C/Y
               and the DEC format setting. Every intermediate display is compared.
 
-              CE|C is the one key deliberately NOT compared here, because offline
-              it is two-stage and upstream it is not. It has its own harness,
-              verify_ce_c.py, which asserts the difference on purpose. The reset
-              between sequences presses until the display reads 0.00 so both
-              builds start each sequence from the same state regardless.
+              Two keys are deliberately NOT compared here, because they differ
+              on purpose: CE|C (two-stage offline, one-stage upstream) and STO/RCL
+              (keypad-driven offline, panel-driven upstream). Each has its own
+              harness, verify_ce_c.py and verify_sto_rcl.py, which assert the
+              differences. The reset between sequences presses until the display
+              reads 0.00 so both builds start from the same state regardless.
   3. offline  the local file is reloaded with every network request aborted at
               the browser level. Any attempt to reach the network fails the run.
 
@@ -36,6 +37,12 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+# The live page's own status text contains characters the Windows console cannot
+# encode, which crashed this script mid-report on GBK terminals instead of
+# finishing the comparison.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 from playwright.sync_api import Page, sync_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -46,6 +53,11 @@ LIVE = "https://baiiplusfinancialcalculator.com/"
 #   ("v", "7")   -> button[data-value="7"]     (digits, . + - * /)
 #   ("a", "cpt") -> button[data-action="cpt"]  (everything else)
 # Every sequence starts from a full clear.
+#
+# No sequence presses STO or RCL. Those are keypad-driven offline (STO then a
+# digit) and panel-driven upstream, so they are the second deliberate divergence
+# after CE|C and are verified in verify_sto_rcl.py. Leaving them here would make
+# this harness compare the one thing meant to differ.
 SEQUENCES: dict[str, list[tuple[str, str]]] = {
     # --- arithmetic, chain mode (the calculator defaults to Chn) ---------
     "chain_7+3*2": [("v", "7"), ("v", "+"), ("v", "3"), ("v", "*"), ("v", "2"), ("a", "equals")],
@@ -66,14 +78,6 @@ SEQUENCES: dict[str, list[tuple[str, str]]] = {
     # --- 2ND layer --------------------------------------------------------
     "2nd_pending": [("a", "2nd")],
     "2nd_then_clear": [("a", "2nd"), ("a", "clearAll")],
-
-    # --- memory -----------------------------------------------------------
-    # No clear in the middle: CE|C is covered by verify_ce_c.py, and mixing it
-    # in here would compare the one behaviour that is meant to differ. Typing a
-    # new number proves the recall just as well.
-    "sto_rcl": [("v", "4"), ("v", "2"), ("a", "sto"), ("v", "1"),
-                ("v", "7"), ("v", "7"), ("a", "rcl"), ("v", "1")],
-    "register_overlay": [("v", "9"), ("a", "sto")],
 
     # --- TVM --------------------------------------------------------------
     "tvm_open": [("a", "tvm")],
@@ -177,7 +181,8 @@ def widget_html(page: Page) -> str:
                 // left there, so comparing them would test the preceding sequence
                 // rather than the markup -- and CE|C, the one deliberate
                 // behavioural difference, would make them disagree.
-                for (const id of ['screen', 'displayExpr', 'statusLeft', 'statusRight']) {
+                for (const id of ['screen', 'displayExpr', 'statusLeft', 'statusRight',
+                                  'regTitle', 'regGrid']) {
                     const n = el.querySelector('#' + id);
                     if (n) n.textContent = '';
                 }
