@@ -129,16 +129,30 @@ def main() -> int:
             f"ERROR: expected {len(sheets)} stylesheet links in page.html, replaced {n_links}"
         )
 
-    # --- swap the <script src> for an inline <script> ---------------------
-    script = (BUILD / "script.js").read_text(encoding="utf-8")
+    # --- swap each <script src> for an inline <script> --------------------
+    # Resolved relative to build/, so "../src/ce_c_behavior.js" works the same as
+    # a sibling. Scripts are inlined in document order, which matters: the
+    # behaviour patch reaches the engine through the shared global lexical scope
+    # and so must run after script.js.
+    def repl_script(m: re.Match[str]) -> str:
+        rel = m.group(1)
+        path = (BUILD / rel).resolve()
+        if ROOT.resolve() not in path.parents:
+            raise SystemExit(f"ERROR: script path escapes the project: {rel}")
+        if not path.is_file():
+            raise SystemExit(f"ERROR: {rel} not found (resolved to {path})")
+        js = path.read_text(encoding="utf-8")
+        # A literal </script> in the source would close the inline block early.
+        if "</script" in js.lower():
+            raise SystemExit(f"ERROR: {rel} contains a literal </script> and cannot be inlined")
+        print(f"  inline {path.name}  ({len(js):,} chars)")
+        return f'<script data-source="{path.name}">\n{js}\n</script>'
+
     page, n_scripts = re.subn(
-        r'<script\s+src="[^"]+"\s*>\s*</script>',
-        lambda m: '<script data-source="script.js">\n' + script + "\n</script>",
-        page,
+        r'<script\s+src="([^"]+)"\s*>\s*</script>', repl_script, page
     )
-    if n_scripts != 1:
-        raise SystemExit(f"ERROR: expected 1 script tag in page.html, replaced {n_scripts}")
-    print(f"  inline script.js  ({len(script):,} chars)")
+    if n_scripts == 0:
+        raise SystemExit("ERROR: no <script src> tags found in page.html")
 
     # --- favicon + provenance banner -------------------------------------
     icon = favicon()
