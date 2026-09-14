@@ -23,7 +23,7 @@ The live site `baiiplusfinancialcalculator.com` is a marketing page wrapped arou
 client-side calculator. This project extracts just the calculator and packages it as a single
 self-contained HTML file. `styles.css` and `script.js` are the upstream files **byte-for-byte**;
 the calculator's engine is never edited by hand. Everything this project adds is either a
-styling override or a small behaviour patch, and both live in files that are clearly marked.
+styling override or one of two small behaviour patches, and all three live in marked files.
 
 ---
 
@@ -46,6 +46,7 @@ To run the checks you also need `pip install playwright pillow` and
 |---|---|
 | Change how it looks | [`src/offline_overrides.css`](../src/offline_overrides.css) |
 | Change how it behaves | [`src/ce_c_behavior.js`](../src/ce_c_behavior.js) |
+| Change focus / input behaviour | [`src/panel_focus.js`](../src/panel_focus.js) |
 | Understand the pipeline | [§3 Architecture](#3-architecture) — the stage table |
 | Know what was changed from upstream | [§5 Deliberate deviations](#5-deliberate-deviations) |
 | Know why a check exists | [§6 Verification](#6-verification) |
@@ -188,6 +189,22 @@ Three details that are easy to break:
   being typed into, which is the CE half already; their second press exits the worksheet.
   Overriding them would break navigation.
 
+### 5.4 No focus stealing — `src/panel_focus.js` (authored)
+
+`script.js` focuses a panel input from three places, each immediately after opening a panel:
+line 988 (the `N` / `I/Y` / `PV` / `PMT` keys), line 1021 (the `FV` key) and line 1062 (the `NPV`
+key, on `#cfRate`). On a desktop that is a convenience. On a phone it is destructive: the panel
+sits below the device, so focusing scrolls it into view — animated, because `styles.css` sets
+`scroll-behavior: smooth` — and the virtual keyboard covers what is left, hiding the calculator
+the user is typing on.
+
+The patch shadows `focus` on the panel inputs. A tap or click is handled by the browser's own
+default action and never calls that method, so tapping still focuses the field and still raises
+the keyboard. Nothing in the engine reads `document.activeElement` or uses a selection API, so
+the only thing lost is the automatic caret placement.
+
+The STO/RCL overlay has no inputs and was never affected.
+
 ---
 
 ## 6. Verification
@@ -202,6 +219,7 @@ falls back without changing a single character of text).
 | `verify_visual.py` | Fonts embedded and applied; size, position and pixels match live | yes |
 | `verify_panel_layout.py` | Panels outside the device, stacked not overlapping, device pinned, live resize | no |
 | `verify_ce_c.py` | The two-stage CE|C, and that worksheets and `CLR WORK` are untouched | no |
+| `verify_panel_focus.py` | No panel steals focus or scrolls the page on open; tapping a field still focuses it | no |
 | `verify_compatibility.py` | Portable paths; works on Chromium/Firefox/WebKit and 5 mobile devices; runs after relocation | no |
 | `check_readme_links.py` | Every in-document link in the README resolves | no |
 
@@ -309,6 +327,7 @@ them; that history is the reason they are not re-introduced.
 | Colours, spacing, font size | `src/offline_overrides.css` | `build_single_file.py`, `verify_visual.py` |
 | Panel placement or its threshold | `src/offline_overrides.css` | `verify_panel_layout.py` |
 | Calculator behaviour | `src/ce_c_behavior.js` | `verify_ce_c.py` |
+| Focus, or anything a panel does to the page on open | `src/panel_focus.js` | `verify_panel_focus.py` |
 | Which markup survives extraction | `tools/extract_calculator.py` | rebuild; `verify_parity.py` |
 | Pull a newer upstream | `python tools/fetch_upstream.py --force` | full pipeline + both live harnesses |
 
@@ -364,7 +383,7 @@ site are independent web emulations of it.
 
 线上站点 `baiiplusfinancialcalculator.com` 是一个营销页面套一个纯前端计算器。本项目只把计算器
 抽出来，打包成一个自包含的 HTML 文件。`styles.css` 与 `script.js` 是上游文件的**逐字节副本**，
-计算器引擎从不手动编辑。本项目新增的内容只有两类：样式覆盖与一处行为补丁，且都在明确标注的文件里。
+计算器引擎从不手动编辑。本项目新增的内容只有三类：样式覆盖与两处行为补丁，且都在明确标注的文件里。
 
 ---
 
@@ -385,6 +404,7 @@ python tools/build_single_file.py    # build/ -> 成品
 |---|---|
 | 改外观 | [`src/offline_overrides.css`](../src/offline_overrides.css) |
 | 改行为 | [`src/ce_c_behavior.js`](../src/ce_c_behavior.js) |
+| 改焦点 / 输入行为 | [`src/panel_focus.js`](../src/panel_focus.js) |
 | 理解流水线 | [§3 架构](#3-架构) —— 阶段对照表 |
 | 知道改了上游哪些东西 | [§5 有意为之的偏离](#5-有意为之的偏离) |
 | 知道某个检查为什么存在 | [§6 验证](#6-验证) |
@@ -509,6 +529,20 @@ flex 空间，让其按 DOM 顺序堆叠，与线上表现一致。
 - **各工作表模式保持原样。** `bgn` / `py` / `format` / `amort` 本来就只清除正在输入的字段，
   已经是 CE 那一半；它们的第二次按键是退出工作表。覆盖它们会破坏导航。
 
+### 5.4 不抢占焦点 —— `src/panel_focus.js`（手写）
+
+`script.js` 在三处调用面板输入框的 `.focus()`，且都在打开面板之后立刻执行：
+第 988 行（`N` / `I/Y` / `PV` / `PMT` 键）、第 1021 行（`FV` 键）、第 1062 行（`NPV` 键，作用于
+`#cfRate`）。在电脑上这是便利；在手机上是破坏性的：面板位于计算器下方，聚焦会把页面滚动过去
+（而且是动画，因为 `styles.css` 设了 `scroll-behavior: smooth`），虚拟键盘再盖住剩下的部分，
+用户正在操作的计算器就此消失。
+
+补丁屏蔽了面板输入框上的 `focus` 方法。点按走的是浏览器自身的默认行为，根本不经过这个方法，
+因此点按依然能聚焦、依然会弹出键盘。引擎中没有任何地方读取 `document.activeElement`，
+也没有使用选区 API，所以唯一失去的只是自动定位光标。
+
+STO/RCL 寄存器面板没有输入框，本来就不受影响。
+
 ---
 
 ## 6. 验证
@@ -522,6 +556,7 @@ flex 空间，让其按 DOM 顺序堆叠，与线上表现一致。
 | `verify_visual.py` | 字体已内嵌并生效；尺寸、位置、像素与线上一致 | 是 |
 | `verify_panel_layout.py` | 面板在计算器外部、堆叠不重叠、计算器不动、缩放实时切换 | 否 |
 | `verify_ce_c.py` | 两段式 CE|C，且工作表与 `CLR WORK` 未受影响 | 否 |
+| `verify_panel_focus.py` | 打开面板不抢焦点、不滚动页面；点按字段仍能聚焦 | 否 |
 | `verify_compatibility.py` | 路径可移植；Chromium/Firefox/WebKit 与 5 种移动端可用；换位置后仍正常 | 否 |
 | `check_readme_links.py` | README 中每个文档内链接都能跳转 | 否 |
 
@@ -625,6 +660,7 @@ git checkout develop && git merge --no-ff main    # 回合并
 | 颜色、间距、字号 | `src/offline_overrides.css` | `build_single_file.py`、`verify_visual.py` |
 | 面板位置或阈值 | `src/offline_overrides.css` | `verify_panel_layout.py` |
 | 计算器行为 | `src/ce_c_behavior.js` | `verify_ce_c.py` |
+| 焦点，或面板打开时对页面的任何影响 | `src/panel_focus.js` | `verify_panel_focus.py` |
 | 提取时保留哪些标记 | `tools/extract_calculator.py` | 重新构建；`verify_parity.py` |
 | 拉取更新的上游 | `python tools/fetch_upstream.py --force` | 完整流水线 + 两个联网验证 |
 
