@@ -245,6 +245,12 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
 <!-- Upstream calculator logic, copied verbatim. Fully client-side: no fetch,
      no XHR, no storage, no imports. Inlined at build time. -->
 <script src="script.js"></script>
+
+<!-- The one file that changes behaviour rather than appearance: restores the
+     real device's two-stage CE|C. Must come after script.js -- it reads that
+     file's top-level bindings through the shared global lexical scope. Inlined
+     at build time. -->
+<script src="../src/ce_c_behavior.js"></script>
 </body>
 </html>
 """

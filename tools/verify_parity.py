@@ -10,9 +10,15 @@ Three checks:
 
   1. markup   #calculator outerHTML, live vs offline, normalised for whitespace.
               Proves nothing inside the widget was altered during extraction.
-  2. parity   ~20 key sequences covering arithmetic, chaining vs AOS, the 2ND
+  2. parity   24 key sequences covering arithmetic, chaining vs AOS, the 2ND
               layer, STO/RCL, TVM, cash flow (NPV/IRR), amortisation, P/Y, C/Y
               and the DEC format setting. Every intermediate display is compared.
+
+              CE|C is the one key deliberately NOT compared here, because offline
+              it is two-stage and upstream it is not. It has its own harness,
+              verify_ce_c.py, which asserts the difference on purpose. The reset
+              between sequences presses until the display reads 0.00 so both
+              builds start each sequence from the same state regardless.
   3. offline  the local file is reloaded with every network request aborted at
               the browser level. Any attempt to reach the network fails the run.
 
@@ -62,7 +68,11 @@ SEQUENCES: dict[str, list[tuple[str, str]]] = {
     "2nd_then_clear": [("a", "2nd"), ("a", "clearAll")],
 
     # --- memory -----------------------------------------------------------
-    "sto_rcl": [("v", "4"), ("v", "2"), ("a", "sto"), ("v", "1"), ("a", "clearAll"), ("a", "rcl"), ("v", "1")],
+    # No clear in the middle: CE|C is covered by verify_ce_c.py, and mixing it
+    # in here would compare the one behaviour that is meant to differ. Typing a
+    # new number proves the recall just as well.
+    "sto_rcl": [("v", "4"), ("v", "2"), ("a", "sto"), ("v", "1"),
+                ("v", "7"), ("v", "7"), ("a", "rcl"), ("v", "1")],
     "register_overlay": [("v", "9"), ("a", "sto")],
 
     # --- TVM --------------------------------------------------------------
@@ -81,7 +91,6 @@ SEQUENCES: dict[str, list[tuple[str, str]]] = {
 
     # --- backspace / editing ---------------------------------------------
     "backspace": [("v", "1"), ("v", "2"), ("v", "3"), ("a", "backspace")],
-    "clear_all": [("v", "9"), ("v", "9"), ("a", "clearAll")],
 }
 
 
@@ -91,9 +100,25 @@ def normalise(html: str) -> str:
 
 
 def clear(page: Page) -> None:
-    """Reset to a known state. clearAll is idempotent enough for a baseline."""
-    page.evaluate("document.querySelector('button.key[data-action=\"clearAll\"]').click()")
-    page.evaluate("document.querySelector('button.key[data-action=\"clearAll\"]').click()")
+    """
+    Reset the page to a fully cleared state, on either build.
+
+    CE|C is the one key whose behaviour is deliberately different offline -- one
+    press is CE there, a full clear here -- so a fixed number of presses cannot
+    be used to reset: which press lands as C depends on whether 2ND happened to
+    be pending. Pressing until the LCD reads "0.00" is self-synchronising instead.
+    After a CE the screen reads "0", after a C it reads "0.00", so the loop always
+    leaves the engine's own full clear as the last thing that ran and leaves the
+    two sides in the same state.
+
+    The behavioural difference itself is verified in verify_ce_c.py; this harness
+    only needs a common starting point.
+    """
+    for _ in range(5):
+        press(page, "a", "clearAll")
+        if read_state(page)["screen"] == "0.00":
+            return
+    raise AssertionError("could not get the calculator into a cleared state")
 
 
 def press(page: Page, kind: str, value: str) -> None:
@@ -148,6 +173,14 @@ def widget_html(page: Page) -> str:
         page.evaluate(
             """() => {
                 const el = document.getElementById('calculator').cloneNode(true);
+                // Blank the live readouts. They hold whatever the last keypress
+                // left there, so comparing them would test the preceding sequence
+                // rather than the markup -- and CE|C, the one deliberate
+                // behavioural difference, would make them disagree.
+                for (const id of ['screen', 'displayExpr', 'statusLeft', 'statusRight']) {
+                    const n = el.querySelector('#' + id);
+                    if (n) n.textContent = '';
+                }
                 const dock = el.querySelector('.panel-dock');
                 if (dock) {
                     const parent = dock.parentNode;
