@@ -10,17 +10,22 @@ This is the one place the offline build deliberately does NOT match the live
 site, so it cannot be covered by verify_parity.py -- that harness asserts the two
 agree, and here they are meant to differ. Hence a separate file.
 
-Six checks:
+Seven checks:
 
   1. entry      One press clears the entry, keeps the pending operator, and the
-                pending operation still computes.
+                pending operation still computes; typing next replaces the zero
+                CE left rather than appending to it.
   2. all        A second consecutive press clears everything.
-  3. pair       Any other key between the two presses breaks the pair, so the
+  3. quiet      Pressing CE|C on an already-clear display changes nothing. The
+                engine renders a raw expression while typing and a formatted
+                number otherwise, so this is where a stray raw "0" shows up as
+                the readout flickering between "0" and "0.00".
+  4. pair       Any other key between the two presses breaks the pair, so the
                 next press is CE again rather than C.
-  4. untouched  CLR WORK (2ND + the same key) and the worksheet modes behave
+  5. untouched  CLR WORK (2ND + the same key) and the worksheet modes behave
                 exactly as upstream.
-  5. keyboard   Escape / c follows the same two-stage rule as the on-screen key.
-  6. modes      Chn and AOS both behave.
+  6. keyboard   Escape / c follows the same two-stage rule as the on-screen key.
+  7. modes      Chn and AOS both behave.
 
 Runs entirely against the local artifact; no network needed.
 
@@ -139,6 +144,32 @@ def main() -> int:
         page.wait_for_timeout(80)
         check("= after C", screen(page), "0.00")
 
+        # ---------- 2b: on an already-clear calculator nothing moves ----------
+        # The engine renders a raw expression while typing ("0") but a formatted
+        # number otherwise ("0.00"). CE used to take the raw path unconditionally,
+        # so pressing it on a clear display flipped the readout between the two on
+        # alternate presses. Both are empty; nothing should appear to happen.
+        print("\n=== 2b. CE|C on an already-clear display changes nothing ===")
+        reset(page)
+        start = screen(page)
+        seen = [start]
+        for _ in range(5):
+            key(page, "a", "clearAll")
+            page.wait_for_timeout(70)
+            seen.append(screen(page))
+        if len(set(seen)) == 1:
+            print(f"  PASS  5 presses left the display at {start!r} throughout")
+        else:
+            failures.append(f"display flickered on repeated CE|C: {seen}")
+            print(f"  FAIL  display flickered: {seen}")
+
+        # the same must hold after a computed result
+        reset(page)
+        keys(page, ("v", "1"), ("v", "2"), ("v", "3"))
+        key(page, "a", "clearAll")
+        page.wait_for_timeout(80)
+        check("123 then CE shows the formatted zero", screen(page), "0.00")
+
         # ---------- 3: an intervening key breaks the pair ----------
         print("\n=== 3. another key between presses breaks the pair ===")
         reset(page)
@@ -230,7 +261,7 @@ def main() -> int:
         # the pair works in AOS too: 14.00 -> CE -> C
         key(page, "a", "clearAll")
         page.wait_for_timeout(80)
-        check("AOS 1st press = CE", screen(page), "0")
+        check("AOS 1st press = CE", screen(page), "0.00")
         key(page, "a", "clearAll")
         page.wait_for_timeout(80)
         check("AOS 2nd press = C", screen(page), "0.00")

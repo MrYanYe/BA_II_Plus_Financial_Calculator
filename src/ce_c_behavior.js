@@ -68,9 +68,27 @@
     let i = expression.length;
     while (i > 0 && /[\d.]/.test(expression[i - 1])) i--;
     const head = expression.slice(0, i);
-    expression =
-      head && head !== "-" && /[+\-*/]$/.test(head) ? head + "0" : "0";
-    setScreen(expression);
+
+    if (head && head !== "-" && /[+\-*/]$/.test(head)) {
+      // Something is still pending, so keep it and zero just the entry:
+      // "12+5" -> "12+0", "2+3*4" -> "2+3*0".
+      expression = head + "0";
+      setScreen(expression);
+    } else {
+      // Nothing was pending, so this leaves exactly the state a full clear
+      // would -- and it has to be RENDERED the same way, too.
+      //
+      // The engine has two conventions: setScreen(expression) shows a raw
+      // expression while the user is typing, setScreen(fmt(n)) shows a formatted
+      // number otherwise. Taking the raw path here would render "0" where a full
+      // clear renders "0.00", so pressing CE|C on an already-clear calculator
+      // would flip the readout between "0.00" and "0" on every press. Both states
+      // are empty; only their spelling differed. fmt(0) keeps them identical, so
+      // the display simply does not change -- which is what the real device does.
+      expression = "0";
+      setScreen(fmt(0));
+    }
+
     setExpr("");
     updateDisplay();
     freshEntry = true;

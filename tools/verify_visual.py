@@ -120,7 +120,11 @@ def main() -> int:
             for label, url in (("live", LIVE), ("offline", LOCAL.as_uri())):
                 page = browser.new_page(viewport=vp)
                 if label == "live":
-                    page.goto(url, wait_until="networkidle", timeout=90_000)
+                    # domcontentloaded + an explicit wait for the widget, not
+                    # networkidle: the live page runs Google Tag Manager, AdSense
+                    # and Clarity, which keep polling, so the network never goes
+                    # idle and networkidle times out at random.
+                    page.goto(url, wait_until="domcontentloaded", timeout=90_000)
                 else:
                     page.goto(url, wait_until="load")
                 page.wait_for_selector("#calculator", timeout=30_000)
