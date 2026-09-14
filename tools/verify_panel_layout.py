@@ -6,7 +6,7 @@ Checks the offline-only worksheet placement: the panels sit outside the device -
 to its left when there is room, below it when there is not -- the device never
 moves, and two panels open at once stack rather than overlap.
 
-Five checks:
+Six checks:
 
   1. placed     Wide landscape: the dock is entirely to the left of the device
                 and top-aligned with it. Narrow or portrait: the dock is entirely
@@ -18,7 +18,12 @@ Five checks:
                 boxes must not intersect.
   4. reachable  Whenever a panel is off the bottom of the viewport, the document
                 must actually scroll far enough to bring it into view.
-  5. live       Resizing a loaded page across the threshold moves the dock
+  5. adjacent   A stacked panel sits right under the keypad, not under the
+                device's empty tail. On a phone upstream stretches the device to
+                min-height: 100vh and the keypad stops ~190px short of the bottom,
+                so positioning from the device's box left the panel adrift of the
+                calculator it belongs to.
+  6. live       Resizing a loaded page across the threshold moves the dock
                 between the two placements without a reload.
 
 Runs entirely against the local artifact; no network needed.
@@ -34,13 +39,22 @@ from pathlib import Path
 from playwright.sync_api import Page, sync_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
-LOCAL = ROOT / "BAII_Plus_Financial_Calculator_Offline_2026.html"
+DEFAULT = ROOT / "BAII_Plus_Financial_Calculator_Offline_2026.html"
+# Point it at another build to compare, e.g. an older artifact from git:
+#     python tools/verify_panel_layout.py path/to/artifact.html
+LOCAL = DEFAULT
 
 PANELS = [
     ("tvm", "tvmPanel"),
     ("cf", "cfPanel"),
     ("sto", "registerOverlay"),
 ]
+
+# How far a stacked panel may sit below the keypad. The device's own bottom
+# padding is 18px and the dock's gap is 20px, so a correctly placed panel is
+# 38px down; the limit leaves slack for a different padding without allowing the
+# ~190px of dead space this check exists to catch.
+GAP_LIMIT = 60
 
 WIDE = {"width": 1400, "height": 900}       # landscape, past the threshold
 NARROW = {"width": 900, "height": 800}      # landscape, too narrow to fit
@@ -95,6 +109,9 @@ def reset(page: Page) -> None:
 
 
 def main() -> int:
+    global LOCAL
+    if len(sys.argv) > 1:
+        LOCAL = Path(sys.argv[1]).resolve()
     if not LOCAL.is_file():
         print(f"ERROR: {LOCAL.name} not found -- run the build first", file=sys.stderr)
         return 1
@@ -223,6 +240,35 @@ def main() -> int:
                 failures.append(f"{label}: panel is inside the device, not below it")
                 print(f"  FAIL  panel starts at y={panel['y']:.0f}, device spans "
                       f"{calc['y']:.0f}-{calc['bottom']:.0f} -- still inside the device")
+            page.close()
+
+        # ---------- 5: stacked panels must sit right under the keypad ----------
+        # The device's box and its visible content are not the same thing: on a
+        # phone the box is stretched to the viewport, so anything measured from
+        # the box lands below ~190px of dead space. Measure from the keypad.
+        print("\n=== a stacked panel is adjacent to the keypad ===")
+        for label, vp in (("phone", {"width": 390, "height": 844}),
+                          ("small phone", {"width": 320, "height": 568}),
+                          ("narrow window", NARROW)):
+            page = browser.new_page(viewport=vp)
+            page.goto(LOCAL.as_uri(), wait_until="load")
+            page.wait_for_selector("#calculator")
+            page.wait_for_timeout(400)
+            reset(page)
+            press(page, "tvm")
+            page.wait_for_timeout(350)
+            bounds = page.evaluate(
+                """() => {
+                    const b = (s) => document.querySelector(s).getBoundingClientRect();
+                    return {keypad: b('#keypad').bottom, panel: b('#tvmPanel').top};
+                }"""
+            )
+            gap = bounds["panel"] - bounds["keypad"]
+            if gap > GAP_LIMIT:
+                failures.append(f"{label}: panel {gap:.0f}px below the keypad")
+                print(f"  FAIL  {label}: {gap:.0f}px of dead space between keypad and panel")
+            else:
+                print(f"  PASS  {label}: panel {gap:.0f}px below the keypad")
             page.close()
 
         # ---------- 6: live resize across the threshold ----------
