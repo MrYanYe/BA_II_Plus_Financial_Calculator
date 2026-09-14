@@ -70,7 +70,12 @@ def check_doc(path: Path) -> list[str]:
 
     # Relative paths in markdown links and images, e.g. [x](docs/images/y.svg)
     paths = sorted(set(re.findall(r"!?\[[^\]]*\]\((?!https?:|#|mailto:)([^)]+)\)", text)))
+    # HTML <img src="..."> counts too -- a tall screenshot is width-constrained
+    # with one, and a broken one looks exactly like a broken markdown image.
+    paths += sorted(set(re.findall(r'<img\s[^>]*src="(?!https?:)([^"]+)"', text)))
+    paths = sorted(set(paths))
     images = set(re.findall(r"!\[[^\]]*\]\((?!#)([^)]+)\)", text))
+    images |= set(re.findall(r'<img\s[^>]*src="([^"]+)"', text))
     for ref in paths:
         target = (path.parent / ref.split("#")[0]).resolve()
         if not target.exists():
