@@ -68,3 +68,54 @@
     justify-content: flex-start;
   }
 }
+
+
+/* 4. Move the worksheet panels beside the device instead of inside it.
+   ─────────────────────────────────────────────────────────────────────────
+   Upstream, opening TVM / CF / STO-RCL expands a panel between the display and
+   the keypad, so the device grows downwards and the keypad is pushed off-screen.
+   Here the panel instead floats to the LEFT of the whole device, top-aligned
+   with it, and the device does not move at all.
+
+   Three things make this work without touching script.js or the markup:
+
+   - The panels use .hidden for show/hide only. Nothing in script.js reads their
+     DOM position, so where they sit on screen is purely a styling concern.
+   - .calculator sets no `position` and no `overflow`, so an absolutely
+     positioned child is free to render outside it. `position: relative` below
+     simply makes the device the containing block.
+   - The three panels are mutually exclusive -- openTVM() hides CF and the
+     register overlay, openCF() hides the others -- so they can all share the
+     same slot without ever colliding.
+
+   Responsive rule, as requested: side by side when there is genuinely room,
+   stacked underneath when there is not. Media queries re-evaluate on every
+   resize, so dragging the window switches modes live with no JavaScript.
+
+   The width in the query is not arbitrary. The device is 420px and the page
+   adds 2rem of side padding, so a centred device has (100vw - 32 - 420) / 2 of
+   space on each side. With a 300px panel and a 20px gap it needs 320px a side:
+
+       420 + 2 * 320 + 32 = 1092px
+
+   1120px leaves a little slack. `orientation: landscape` covers the portrait
+   case explicitly, where the request was to stack regardless of width.
+
+   Below that threshold nothing is overridden, which is deliberate: the panels
+   fall back to exactly upstream's in-flow position below the display. That is
+   the right answer on a phone, where there is no room beside the device and
+   scrolling is already expected. */
+@media (orientation: landscape) and (min-width: 1120px) {
+  .calculator {
+    position: relative;
+  }
+
+  .worksheet,
+  .register-overlay {
+    position: absolute;
+    top: 0;
+    right: calc(100% + 20px);
+    width: 300px;
+    margin-bottom: 0;
+  }
+}
