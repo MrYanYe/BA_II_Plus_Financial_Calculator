@@ -1,0 +1,15 @@
+# Normalise line endings to LF in the repository and in the working tree.
+#
+# This matters more than usual here: the single-file build inlines src/styles.css
+# and src/script.js verbatim, and the build script asserts the result is
+# byte-reproducible. If git rewrote those files to CRLF on checkout, a build on
+# Windows would produce a different file from a build on Linux for identical
+# input. Forcing LF everywhere keeps `git clone` + build deterministic on any
+# platform, which is also what makes the artifact safe to copy to other machines.
+* text=auto eol=lf
+
+# Binary assets: never touch these.
+*.woff2 binary
+*.png     binary
+*.jpg     binary
+*.pdf     binary
