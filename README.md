@@ -13,7 +13,7 @@ A faithful offline copy of the calculator at
 self-contained HTML file. Double-click it and the calculator runs — no server, no install, no
 network.
 
-**The deliverable is one file: [`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html) (201 KB).**
+**The deliverable is one file: [`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html) (203 KB).**
 
 New here and want to change something? Read the **[Engineering Guide](docs/ENGINEERING_GUIDE.md)** —
 it covers the pipeline, where each kind of change belongs, and the traps that are not obvious.
@@ -86,7 +86,13 @@ This was measured against the live site, not assumed. See [Verification](#verifi
 2. **Worksheet panels sit outside the device, not inside it.** Upstream, opening TVM / CF /
    STO-RCL expands a panel between the display and the keypad, so the device grows downwards and
    pushes the keypad off-screen. Here the panels go to the **left** of the device, top-aligned,
-   or **below the whole device** when there is no room beside it. The device itself never moves.
+   or **below it** when there is no room beside it. The device itself never moves.
+
+   "Below" means below the *keypad*, 20px under it, not below the device's box. On a phone those
+   are different places: upstream stretches the device to the full screen there, so its box ends
+   ~190px after the last key. Measuring from the box left the panel adrift of the calculator it
+   belongs to; the phone layout reorders the device's children so the panel lands directly under
+   the keys, and the screen's leftover space falls below the panel instead.
 
    This is responsive, and switches live as you resize:
 
@@ -330,7 +336,7 @@ independent web emulation of it, and so is the upstream site.
 把 [https://baiiplusfinancialcalculator.com/](https://baiiplusfinancialcalculator.com/) 上的计算器
 完整搬到本地，打包成一个自包含的 HTML 文件。双击即用 —— 不需要服务器、不需要安装、不需要联网。
 
-**成品只有一个文件：[`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html)（201 KB）。**
+**成品只有一个文件：[`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html)（203 KB）。**
 
 想改动什么？请先读 **[工程指南](docs/ENGINEERING_GUIDE.md)** —— 里面讲了流水线、每类改动该动哪里，
 以及那些不那么明显的坑。
@@ -396,8 +402,13 @@ independent web emulation of it, and so is the upstream site.
    一个完整的工具，而不是一个没加载完的页面。
 
 2. **工作表面板在计算器外部，而不是内部。** 线上打开 TVM / CF / STO-RCL 时，面板会插在显示屏和
-   键盘之间，把键盘往下挤。这里改为放在计算器**左侧**、与其顶部对齐；放不下时则放在**整个计算器
-   的下方**。计算器本身始终原地不动。
+   键盘之间，把键盘往下挤。这里改为放在计算器**左侧**、与其顶部对齐；放不下时则放在其**下方**。
+   计算器本身始终原地不动。
+
+   "下方"指的是**键盘下方** —— 紧贴键盘 20px，而不是计算器方框的下方。在手机上这两者不是一回事：
+   上游会把计算器拉伸到满屏，方框比最后一个按键还多出约 190px。按方框定位会让面板离它所依附的
+   计算器很远；手机端改为调整计算器内部子元素的顺序，让面板直接落在键盘下面，而屏幕剩余的空间
+   落在面板下方。
 
    这个布局是响应式的，拖动窗口时会实时切换：
 
