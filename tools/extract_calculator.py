@@ -2,22 +2,30 @@
 """
 Step 2 of 3 -- extract_calculator.py
 
-Turn the raw page mirror in upstream_raw/ into the trimmed working set in src/.
+Turn the raw page mirror in upstream_raw/ into build/, the trimmed working set.
 
 Two outputs:
 
-  src/page.html     The page skeleton with ONLY the calculator widget kept.
+  build/page.html   The page skeleton with ONLY the calculator widget kept.
                     Everything else -- navbar, the "other calculators" carousel,
                     the marketing sections, the footer, and the ad/analytics
                     tags -- is dropped. The widget markup itself is copied
                     byte-for-byte from upstream; nothing inside it is rewritten.
 
-  src/fonts.css     The Google Fonts @font-face sheet, rewritten to point at the
-                    local woff2 copies in src/fonts/ instead of fonts.gstatic.com.
+  build/fonts.css   The Google Fonts @font-face sheet, rewritten to point at the
+                    local woff2 copies in build/fonts/ instead of fonts.gstatic.com.
 
-src/page.html is a normal, directly-openable page: it links styles.css,
-script.js, fonts.css and offline_overrides.css as sibling files. build_single_file.py
-later collapses those four into one self-contained document.
+Everything under build/ is generated and disposable -- wipe it and re-run. The
+only hand-authored file this project has is src/offline_overrides.css, which
+lives outside build/ for exactly that reason. build/page.html links it by
+relative path, so the page still opens directly in a browser for development:
+
+    build/page.html   the assembled page
+    src/              hand-written source (offline_overrides.css)
+    upstream_raw/     the mirror everything above is generated from
+
+build_single_file.py then collapses the four stylesheets and scripts into one
+self-contained document.
 
 A coverage check runs at the end: every element id that script.js looks up must
 exist in the extracted markup, or the build fails loudly.
@@ -34,7 +42,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "upstream_raw"
-SRC = ROOT / "src"
+SRC = ROOT / "src"    # hand-authored only: offline_overrides.css
+BUILD = ROOT / "build"  # generated; disposable, regenerated from RAW by this script
 
 # The widget we keep. Everything outside this element is discarded.
 WIDGET_ID = "calculator"
@@ -118,8 +127,8 @@ def build_fonts_css() -> str:
         name = url.rsplit("/", 1)[-1]
         slug = "space-grotesk" if "spacegrotesk" in url else "share-tech-mono"
         local = f"{slug}__{name}"
-        if not (RAW / "fonts" / local).is_file() and not (SRC / "fonts" / local).is_file():
-            raise SystemExit(f"ERROR: font file missing for {url}")
+        if not (RAW / "fonts" / local).is_file():
+            raise SystemExit(f"ERROR: font file missing for {url} -- run fetch_upstream.py first")
 
         weights = groups[key]["weights"]
         w_min, w_max = min(weights), max(weights)
@@ -161,7 +170,7 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
 <!-- Upstream stylesheet, copied verbatim from baiiplusfinancialcalculator.com -->
 <link rel="stylesheet" href="styles.css" />
 <!-- Centring + any other offline-only adjustments. See the file for rationale. -->
-<link rel="stylesheet" href="offline_overrides.css" />
+<link rel="stylesheet" href="../src/offline_overrides.css" />
 </head>
 <body>
 
@@ -217,36 +226,36 @@ def main() -> int:
         print("  all required ids present")
 
     # --- write ------------------------------------------------------------
-    SRC.mkdir(parents=True, exist_ok=True)
+    BUILD.mkdir(parents=True, exist_ok=True)
 
     # styles.css and script.js are carried over untouched -- they are the same
-    # bytes the live site serves. Re-copied on every run so src/ can never drift
-    # away from the mirror.
+    # bytes the live site serves. Re-copied on every run so build/ can never
+    # drift away from the mirror.
     for name in ("styles.css", "script.js"):
         data = (RAW / name).read_bytes()
-        (SRC / name).write_bytes(data)
-        print(f"  copy   src/{name}  ({len(data):,} bytes, verbatim)")
+        (BUILD / name).write_bytes(data)
+        print(f"  copy   build/{name}  ({len(data):,} bytes, verbatim)")
 
-    # Fonts are copied across so src/ is a complete, self-sufficient working set
-    # that can be opened directly in a browser for development.
+    # Fonts are copied across so build/page.html is a complete, self-sufficient
+    # page that can be opened directly in a browser for development.
     font_src = RAW / "fonts"
-    (SRC / "fonts").mkdir(parents=True, exist_ok=True)
+    (BUILD / "fonts").mkdir(parents=True, exist_ok=True)
     copied = 0
     for font in sorted(font_src.glob("*.woff2")):
-        (SRC / "fonts" / font.name).write_bytes(font.read_bytes())
+        (BUILD / "fonts" / font.name).write_bytes(font.read_bytes())
         copied += font.stat().st_size
-    print(f"  copy   src/fonts/*.woff2  ({copied:,} bytes, {len(list(font_src.glob('*.woff2')))} files)")
+    print(f"  copy   build/fonts/*.woff2  ({copied:,} bytes, {len(list(font_src.glob('*.woff2')))} files)")
 
     # newline="\n" throughout: the write_text default translates \n to
     # os.linesep, which would give these files CRLF on Windows and LF on Linux
     # and make the build output depend on the host platform.
     page = PAGE_TEMPLATE.replace("{calculator}", widget)
-    (SRC / "page.html").write_text(page, encoding="utf-8", newline="\n")
-    print(f"  write  src/page.html  ({styled(page)} chars)")
+    (BUILD / "page.html").write_text(page, encoding="utf-8", newline="\n")
+    print(f"  write  build/page.html  ({styled(page)} chars)")
 
     fonts_css = build_fonts_css()
-    (SRC / "fonts.css").write_text(fonts_css, encoding="utf-8", newline="\n")
-    print(f"  write  src/fonts.css  ({styled(fonts_css)} chars)")
+    (BUILD / "fonts.css").write_text(fonts_css, encoding="utf-8", newline="\n")
+    print(f"  write  build/fonts.css  ({styled(fonts_css)} chars)")
     return 0
 
 
