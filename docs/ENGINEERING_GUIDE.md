@@ -23,7 +23,7 @@ The live site `baiiplusfinancialcalculator.com` is a marketing page wrapped arou
 client-side calculator. This project extracts just the calculator and packages it as a single
 self-contained HTML file. `styles.css` and `script.js` are the upstream files **byte-for-byte**;
 the calculator's engine is never edited by hand. Everything this project adds is either a
-styling override or one of two small behaviour patches, and all three live in marked files.
+styling override or one of three small behaviour patches, and all four live in marked files.
 
 ---
 
@@ -47,6 +47,7 @@ To run the checks you also need `pip install playwright pillow` and
 | Change how it looks | [`src/offline_overrides.css`](../src/offline_overrides.css) |
 | Change how it behaves | [`src/ce_c_behavior.js`](../src/ce_c_behavior.js) |
 | Change focus / input behaviour | [`src/panel_focus.js`](../src/panel_focus.js) |
+| Change STO / RCL | [`src/sto_rcl_behavior.js`](../src/sto_rcl_behavior.js) |
 | Understand the pipeline | [§3 Architecture](#3-architecture) — the stage table |
 | Know what was changed from upstream | [§5 Deliberate deviations](#5-deliberate-deviations) |
 | Know why a check exists | [§6 Verification](#6-verification) |
@@ -159,11 +160,15 @@ top out of the scroll origin where it cannot be reached.
 `extract_calculator.py` wraps the three panels in `<div class="panel-dock">`. This is the only
 change to the widget's markup.
 
-It exists because **the panels do not reliably hide each other**: `openTVM()` and `openCF()` each
-hide the other two, but `openRegOverlay()` hides nothing. Pressing `N` then `STO` genuinely
-leaves two panels open at once. Upstream that is harmless — both sit in normal flow and stack
-down the page — but once positioned they would land in the same spot and overlap. The dock gives
-them a shared flex column so they stack in DOM order, exactly as upstream does.
+It was introduced because **the panels did not reliably hide each other**: `openTVM()` and
+`openCF()` each hide the other two, but `openRegOverlay()` hid nothing, so pressing `N` then `STO`
+genuinely left two panels open and, once positioned, they overlapped.
+
+That trigger is gone — §5.5 made STO/RCL keypad-driven, so the register overlay is no longer
+reachable and only TVM and CF remain, which do hide each other. The dock stays: it is what the
+placement CSS positions, and it still guarantees two visible panels would stack rather than
+collide. `verify_panel_layout.py` forces both visible so that guarantee stays tested rather than
+becoming an untested comment.
 
 `wrap_panels()` asserts the wrapped run contains all three panels and neither the display nor
 the keypad, so an upstream reshuffle fails the build instead of silently wrapping the wrong
@@ -210,6 +215,32 @@ the only thing lost is the automatic caret placement.
 
 The STO/RCL overlay has no inputs and was never affected.
 
+### 5.5 STO / RCL on the keypad — `src/sto_rcl_behavior.js` (authored)
+
+Upstream, `STO` and `RCL` open a panel of register buttons and that panel is the only route to a
+register, so a recall can only ever begin a calculation. The device has no such panel: you press
+`STO` or `RCL` and then a digit, which is what makes `23 + RCL 1 =` possible.
+
+The patch suppresses the engine's `sto`/`rcl` handlers in the capture phase, keeps its own
+`pending` state, and completes the gesture on the next digit. `RCL` replaces the entry being typed
+and keeps the prefix, so with 100 in the register `23+5` recalled becomes `23+100`. A negative
+value is bracketed — `23+(-100)` — because the chain evaluator would otherwise read `23+-100` as a
+subtraction of a negative literal.
+
+Two things to know if you touch this:
+
+- **`pendingOp` in script.js looks like it tracks this and does not.** It is assigned by
+  `openRegOverlay()` and read nowhere; the panel's buttons use a closure. This file keeps its own
+  state rather than relying on it.
+- **The register overlay is now unreachable.** It is still in the markup — so the parity check
+  against the live site still holds — but nothing opens it. `verify_panel_layout.py` forces it
+  visible with JS when it needs to prove the dock still stacks two panels.
+
+One deliberate difference from the device: `STO` stores the *evaluated display*, via the engine's
+own `currentNum()`, not the partly-typed entry. With `23+4` on screen it stores 27. The engine
+shows the whole expression where a device shows only the `4`, and this matches what its TVM keys
+already do.
+
 ---
 
 ## 6. Verification
@@ -225,6 +256,7 @@ falls back without changing a single character of text).
 | `verify_panel_layout.py` | Panels outside the device, stacked not overlapping, device pinned, live resize | no |
 | `verify_ce_c.py` | The two-stage CE|C, and that worksheets and `CLR WORK` are untouched | no |
 | `verify_panel_focus.py` | No panel steals focus or scrolls the page on open; tapping a field still focuses it | no |
+| `verify_sto_rcl.py` | STO/RCL from the keypad: ten registers, mid-expression recall, cancel paths, Chn and AOS | no |
 | `verify_compatibility.py` | Portable paths; works on Chromium/Firefox/WebKit and 5 mobile devices; runs after relocation | no |
 | `check_readme_links.py` | Every in-document link in the README resolves | no |
 
@@ -333,6 +365,7 @@ them; that history is the reason they are not re-introduced.
 | Panel placement or its threshold | `src/offline_overrides.css` | `verify_panel_layout.py` |
 | Calculator behaviour | `src/ce_c_behavior.js` | `verify_ce_c.py` |
 | Focus, or anything a panel does to the page on open | `src/panel_focus.js` | `verify_panel_focus.py` |
+| Register behaviour (STO / RCL) | `src/sto_rcl_behavior.js` | `verify_sto_rcl.py` |
 | Which markup survives extraction | `tools/extract_calculator.py` | rebuild; `verify_parity.py` |
 | Pull a newer upstream | `python tools/fetch_upstream.py --force` | full pipeline + both live harnesses |
 
@@ -388,7 +421,7 @@ site are independent web emulations of it.
 
 线上站点 `baiiplusfinancialcalculator.com` 是一个营销页面套一个纯前端计算器。本项目只把计算器
 抽出来，打包成一个自包含的 HTML 文件。`styles.css` 与 `script.js` 是上游文件的**逐字节副本**，
-计算器引擎从不手动编辑。本项目新增的内容只有三类：样式覆盖与两处行为补丁，且都在明确标注的文件里。
+计算器引擎从不手动编辑。本项目新增的内容只有四类：样式覆盖与三处行为补丁，且都在明确标注的文件里。
 
 ---
 
@@ -410,6 +443,7 @@ python tools/build_single_file.py    # build/ -> 成品
 | 改外观 | [`src/offline_overrides.css`](../src/offline_overrides.css) |
 | 改行为 | [`src/ce_c_behavior.js`](../src/ce_c_behavior.js) |
 | 改焦点 / 输入行为 | [`src/panel_focus.js`](../src/panel_focus.js) |
+| 改 STO / RCL | [`src/sto_rcl_behavior.js`](../src/sto_rcl_behavior.js) |
 | 理解流水线 | [§3 架构](#3-架构) —— 阶段对照表 |
 | 知道改了上游哪些东西 | [§5 有意为之的偏离](#5-有意为之的偏离) |
 | 知道某个检查为什么存在 | [§6 验证](#6-验证) |
@@ -510,10 +544,14 @@ cmp upstream_raw/script.js build/script.js && echo "逐字节一致"
 
 `extract_calculator.py` 把三个面板包进 `<div class="panel-dock">`。这是对组件标记的唯一改动。
 
-它之所以存在，是因为**三个面板并不会可靠地互相隐藏**：`openTVM()` 和 `openCF()` 都会关掉另外两个，
-但 `openRegOverlay()` 什么都不关。先按 `N` 再按 `STO` 确实会同时打开两个面板。线上这没问题 ——
-两者都在正常文档流里往下堆叠 —— 但改成定位后它们会落在同一位置而重叠。这个容器给它们一列共用的
-flex 空间，让其按 DOM 顺序堆叠，与线上表现一致。
+它当初引入，是因为**这些面板并不会可靠地互相隐藏**：`openTVM()` 和 `openCF()` 都会关掉另外两个，
+但 `openRegOverlay()` 什么都不关，所以先按 `N` 再按 `STO` 确实会同时打开两个面板，而改成定位后
+它们就会重叠。
+
+这个触发条件现在已经不存在了 —— §5.5 把 STO/RCL 改成键盘驱动后，寄存器面板已无法打开，只剩下
+TVM 与 CF，而这两者是互斥的。容器保留下来：定位 CSS 作用在它身上，而且它依然保证"两个面板同时
+可见时会堆叠而不是重叠"。`verify_panel_layout.py` 会强制两者可见，让这个保证保持被测试的状态，
+而不是沦为一句无人验证的说明。
 
 `wrap_panels()` 会断言被包裹的区间包含三个面板且不含显示区与键盘，因此上游若改动结构，
 构建会直接失败，而不是悄悄包错东西。
@@ -551,6 +589,28 @@ flex 空间，让其按 DOM 顺序堆叠，与线上表现一致。
 
 STO/RCL 寄存器面板没有输入框，本来就不受影响。
 
+### 5.5 键盘上的 STO / RCL —— `src/sto_rcl_behavior.js`（手写）
+
+线上 `STO` 与 `RCL` 会弹出寄存器面板，而那个面板是访问寄存器的唯一途径，因此调用只能从一次计算的
+开头开始。真机没有这个面板：按 `STO` 或 `RCL`，再按一个数字键 —— 这正是 `23 + RCL 1 =` 得以
+成立的原因。
+
+补丁在捕获阶段拦下引擎的 `sto`/`rcl` 处理，自己维护 `pending` 状态，并在下一个数字键上完成整个
+动作。`RCL` 会替换正在输入的那一项并保留前缀，所以当寄存器里是 100 时，`23+5` 会变成 `23+100`。
+负值会加括号 —— `23+(-100)` —— 否则链式求值器会把 `23+-100` 读成"减去一个负字面量"。
+
+改动这里需要知道两件事：
+
+- **script.js 里的 `pendingOp` 看起来是管这件事的，其实不是。** 它由 `openRegOverlay()` 赋值，
+  却没有任何地方读取；面板按钮用的是闭包变量。本文件维护自己的状态，不依赖它。
+- **寄存器面板现在已无法打开。** 它仍保留在标记里 —— 因此与线上站点的结构比对依然成立 —— 但
+  没有任何东西会打开它。`verify_panel_layout.py` 在需要验证容器仍能堆叠两个面板时，用 JS 强制
+  显示它。
+
+一处与真机有意的差异：`STO` 存的是**屏幕显示值的求值结果**（经由引擎自身的 `currentNum()`），
+而不是正在输入的那一项。屏幕上显示 `23+4` 时会存 27。本引擎显示整个表达式，而真机只显示那个 `4`；
+这与它自己的 TVM 键行为一致。
+
 ---
 
 ## 6. 验证
@@ -565,6 +625,7 @@ STO/RCL 寄存器面板没有输入框，本来就不受影响。
 | `verify_panel_layout.py` | 面板在计算器外部、堆叠不重叠、计算器不动、缩放实时切换 | 否 |
 | `verify_ce_c.py` | 两段式 CE|C，且工作表与 `CLR WORK` 未受影响 | 否 |
 | `verify_panel_focus.py` | 打开面板不抢焦点、不滚动页面；点按字段仍能聚焦 | 否 |
+| `verify_sto_rcl.py` | STO/RCL 键盘操作：十个寄存器、中途调用、取消路径、Chn 与 AOS | 否 |
 | `verify_compatibility.py` | 路径可移植；Chromium/Firefox/WebKit 与 5 种移动端可用；换位置后仍正常 | 否 |
 | `check_readme_links.py` | README 中每个文档内链接都能跳转 | 否 |
 
@@ -669,6 +730,7 @@ git checkout develop && git merge --no-ff main    # 回合并
 | 面板位置或阈值 | `src/offline_overrides.css` | `verify_panel_layout.py` |
 | 计算器行为 | `src/ce_c_behavior.js` | `verify_ce_c.py` |
 | 焦点，或面板打开时对页面的任何影响 | `src/panel_focus.js` | `verify_panel_focus.py` |
+| 寄存器行为（STO / RCL） | `src/sto_rcl_behavior.js` | `verify_sto_rcl.py` |
 | 提取时保留哪些标记 | `tools/extract_calculator.py` | 重新构建；`verify_parity.py` |
 | 拉取更新的上游 | `python tools/fetch_upstream.py --force` | 完整流水线 + 两个联网验证 |
 
