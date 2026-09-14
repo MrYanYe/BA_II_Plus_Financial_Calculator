@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7745210315695201"
+        crossorigin="anonymous"></script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-K2YV56ZBG3"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-K2YV56ZBG3');
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Free BA II Plus Financial Calculator Online - No Sign-Up CFA & FRM Tool</title>
+    <meta name="description"
+        content="Free online Texas Instruments BAII Plus financial calculator online simulator. Calculate NPV, IRR, TVM, and Bond valuations with the authentic interface." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Share+Tech+Mono&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=20260909" />
+    <link rel="canonical" href="https://baiiplusfinancialcalculator.com" />
+    <link rel="icon" type="image/png" href="logo.png" />
+    <meta name="yandex-verification" content="78c6205fa2399244" />
+    <script type="text/javascript">
+        (function (c, l, a, r, i, t, y) {
+            c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments) };
+            t = l.createElement(r); t.async = 1; t.src = "https://www.clarity.ms/tag/" + i;
+            y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
+        })(window, document, "clarity", "script", "wwlu807isu");
+    </script>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <img src="logo.png" alt="Financial Calculator Logo" class="nav-logo">
+                Financial Calculator
+            </a>
+            <input type="checkbox" id="nav-toggle" class="nav-toggle" style="display: none;">
+            <ul class="nav-links">
+                <li><a href="/">BA II Plus Calculator</a></li>
+                <li class="dropdown-group">
+                    <input type="checkbox" id="dropdown-toggle" class="dropdown-toggle" style="display: none;">
+                    <label for="dropdown-toggle" class="dropdown-trigger-label">
+                        Financial Calculator
+                        <svg class="arrow-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </label>
+                    <div class="dropdown-menu">
+                        <a href="/amortizationcalculator">Amortization Calculator</a>
+                        <a href="/cashflowcalculator">Cash Flow Calculator</a>
+                        <a href="/tvmcalculator">TVM Calculator</a>
+                        <a href="/savingscalculator">Savings Calculator</a>
+                    </div>
+                </li>
+                <li><a href="/userguide">User Guides</a></li>
+                <li><a href="/contact">Contact</a></li>
+            </ul>
+            <div class="nav-right-group">
+                <a href="/" class="nav-cta">Use Simulator</a>
+                <label for="nav-toggle" class="nav-toggle-label">
+                    <span class="hamburger"></span>
+                </label>
+            </div>
+        </div>
+    </nav>
+
+    <div class="app-shell">
+        <section id="hero" class="hero-area">
+            <div id="calculator" class="calculator" role="application" aria-label="BA II Plus Financial Calculator">
+
+                <!-- ── LCD DISPLAY ── -->
+                <div class="display" id="display">
+                    <div class="display-status">
+                        <span id="statusLeft"></span>
+                        <span id="statusRight"></span>
+                    </div>
+                    <div class="display-expr" id="displayExpr"></div>
+                    <output class="display-screen" id="screen" aria-live="polite">0</output>
+                </div>
+
+                <!-- ── TVM WORKSHEET PANEL ── -->
+                <section class="worksheet" id="tvmPanel" aria-label="TVM Worksheet" hidden>
+                    <div class="ws-header">
+                        <span class="ws-title">TVM WORKSHEET</span>
+                        <button class="ws-close" id="tvmClose" aria-label="Close TVM">✕</button>
+                    </div>
+                    <div class="ws-grid">
+                        <label class="ws-field">
+                            <span class="ws-label">N <span class="ws-hint">Periods</span></span>
+                            <input id="tvmN" type="text" inputmode="decimal" placeholder="0" />
+                        </label>
+                        <label class="ws-field">
+                            <span class="ws-label">I/Y <span class="ws-hint">Annual %</span></span>
+                            <input id="tvmIY" type="text" inputmode="decimal" placeholder="0" />
+                        </label>
+                        <label class="ws-field">
+                            <span class="ws-label">PV <span class="ws-hint">Present Value</span></span>
+                            <input id="tvmPV" type="text" inputmode="decimal" placeholder="0" />
+                        </label>
+                        <label class="ws-field">
+                            <span class="ws-label">PMT <span class="ws-hint">Payment</span></span>
+                            <input id="tvmPMT" type="text" inputmode="decimal" placeholder="0" />
+                        </label>
+                        <label class="ws-field">
+                            <span class="ws-label">P/Y <span class="ws-hint">Pmts/Yr</span></span>
+                            <input id="tvmPY" type="text" inputmode="decimal" placeholder="1" />
+                        </label>
+                        <label class="ws-field">
+                            <span class="ws-label">C/Y <span class="ws-hint">Comp/Yr</span></span>
+                            <input id="tvmCY" type="text" inputmode="decimal" placeholder="1" />
+                        </label>
+                        <label class="ws-field ws-field--full">
+                            <span class="ws-label">FV <span class="ws-hint">Future Value</span></span>
+                            <input id="tvmFV" type="text" inputmode="decimal" placeholder="0" />
+                        </label>
+                    </div>
+                    <div class="ws-actions">
+                        <button class="ws-btn" data-tvm="n">CPT N</button>
+                        <button class="ws-btn" data-tvm="iy">CPT I/Y</button>
+                        <button class="ws-btn" data-tvm="pv">CPT PV</button>
+                        <button class="ws-btn" data-tvm="pmt">CPT PMT</button>
+                        <button class="ws-btn ws-btn--wide" data-tvm="fv">CPT FV</button>
+                    </div>
+                    <p class="ws-note">Fill 4 known values → press CPT for the unknown.</p>
+                </section>
+
+                <!-- ── CF / NPV / IRR WORKSHEET PANEL ── -->
+                <section class="worksheet" id="cfPanel" aria-label="Cash Flow Worksheet" hidden>
+                    <div class="ws-header">
+                        <span class="ws-title">CF WORKSHEET</span>
+                        <button class="ws-close" id="cfClose" aria-label="Close CF">✕</button>
+                    </div>
+                    <div class="cf-top">
+                        <label class="ws-field">
+                            <span class="ws-label">I/Y % <span class="ws-hint">Discount Rate for NPV</span></span>
+                            <input id="cfRate" type="number" inputmode="decimal" placeholder="e.g. 10" />
+                        </label>
+                        <div class="cf-cpt-row">
+                            <button class="ws-btn ws-btn--green" id="btnCptNPV">CPT NPV</button>
+                            <button class="ws-btn ws-btn--green" id="btnCptIRR">CPT IRR</button>
+                        </div>
+                    </div>
+                    <div class="cf-list" id="cfList"></div>
+                    <button class="ws-btn ws-btn--add" id="btnAddCF">+ Add CF Period</button>
+                    <p class="ws-note">CF0 = initial outflow (enter as negative). Add subsequent periods below.</p>
+                </section>
+
+                <!-- ── STO/RCL REGISTER OVERLAY ── -->
+                <div class="register-overlay" id="registerOverlay" hidden>
+                    <div class="reg-title" id="regTitle">STO — select register 0 to 9</div>
+                    <div class="reg-grid" id="regGrid"></div>
+                    <button class="reg-cancel" id="regCancel">Cancel</button>
+                </div>
+
+                <!-- ── KEYPAD ── -->
+                <div class="keypad" id="keypad">
+
+                    <!-- Row 1 -->
+                    <div class="krow">
+                        <button class="key key-nav" data-action="cpt"><span class="ks">QUIT</span> <span
+                                class="kp">CPT</span> </button>
+                        <button class="key key-nav" data-action="enter"><span class="ks">SET</span> <span
+                                class="kp">ENTER</span></button>
+                        <button class="key key-nav" data-action="arrowUp"><span class="ks">DEL</span> <span
+                                class="kp">↑</span> </button>
+                        <button class="key key-nav" data-action="arrowDn"><span class="ks">INS</span> <span
+                                class="kp">↓</span> </button>
+                        <button class="key key-nav" data-action="assign"><span class="ks">&nbsp;</span> <span
+                                class="kp">=</span> </button>
+                    </div>
+
+                    <!-- Row 2 -->
+                    <div class="krow">
+                        <button class="key key-2nd" data-action="2nd" id="btn2nd"><span class="ks">&nbsp;</span><span
+                                class="kp">2ND</span></button>
+                        <button class="key key-func" data-action="cf"><span class="ks">&nbsp;</span><span
+                                class="kp">CF</span> </button>
+                        <button class="key key-func" data-action="npv"><span class="ks">&nbsp;</span><span
+                                class="kp">NPV</span> </button>
+                        <button class="key key-func" data-action="irr"><span class="ks">&nbsp;</span><span
+                                class="kp">IRR</span> </button>
+                        <button class="key key-nav" data-action="backspace"><span class="ks">&nbsp;</span><span
+                                class="kp">→</span> </button>
+                    </div>
+
+                    <!-- Row 3 – TVM keys -->
+                    <div class="krow">
+                        <button class="key key-tvm" data-action="tvm" data-target="n"><span class="ks">xP/Y</span> <span
+                                class="kp">N</span> </button>
+                        <button class="key key-tvm" data-action="tvm" data-target="iy"><span class="ks">P/Y</span> <span
+                                class="kp">I/Y</span> </button>
+                        <button class="key key-tvm" data-action="tvm" data-target="pv"><span class="ks">AMORT</span>
+                            <span class="kp">PV</span> </button>
+                        <button class="key key-tvm" data-action="tvm" data-target="pmt"><span class="ks">BGN</span>
+                            <span class="kp">PMT</span> </button>
+                        <button class="key key-tvm" data-action="clrTVM"><span class="ks">CLR TVM</span><span
+                                class="kp">FV</span> </button>
+                    </div>
+
+                    <!-- Row 4 – Math top -->
+                    <div class="krow">
+                        <button class="key key-math" data-action="percent"><span class="ks">K</span> <span
+                                class="kp">%</span> </button>
+                        <button class="key key-math" data-action="sqrt"><span class="ks">&nbsp;</span><span
+                                class="kp">√x</span> </button>
+                        <button class="key key-math" data-action="square"><span class="ks">&nbsp;</span><span
+                                class="kp">x²</span> </button>
+                        <button class="key key-math" data-action="reciprocal"><span class="ks">&nbsp;</span><span
+                                class="kp">1/x</span> </button>
+                        <button class="key key-op" data-value="/"><span class="ks">RAND</span><span class="kp">÷</span>
+                        </button>
+                    </div>
+
+                    <!-- Row 5 – Trig / parens -->
+                    <div class="krow">
+                        <button class="key key-math" data-action="inv"><span class="ks">HYP</span> <span
+                                class="kp">INV</span></button>
+                        <button class="key key-math" data-action="openParen"><span class="ks">SIN</span> <span
+                                class="kp">(</span> </button>
+                        <button class="key key-math" data-action="closeParen"><span class="ks">COS</span> <span
+                                class="kp">)</span> </button>
+                        <button class="key key-math" data-action="power"><span class="ks">TAN</span> <span
+                                class="kp">yˣ</span> </button>
+                        <button class="key key-op" data-value="*"><span class="ks">x!</span> <span class="kp">×</span>
+                        </button>
+                    </div>
+
+                    <!-- Row 6 – LN 7 8 9 − -->
+                    <div class="krow">
+                        <button class="key key-math" data-action="ln"><span class="ks">eˣ</span> <span
+                                class="kp">LN</span></button>
+                        <button class="key key-num" data-value="7"><span class="ks">DATA</span> <span
+                                class="kp">7</span> </button>
+                        <button class="key key-num" data-value="8"><span class="ks">STAT</span> <span
+                                class="kp">8</span> </button>
+                        <button class="key key-num" data-value="9"><span class="ks">BOND</span> <span
+                                class="kp">9</span> </button>
+                        <button class="key key-op" data-value="-"><span class="ks">nPr</span> <span
+                                class="kp">−</span></button>
+                    </div>
+
+                    <!-- Row 7 – STO 4 5 6 + -->
+                    <div class="krow">
+                        <button class="key key-mem" data-action="sto"><span class="ks">ROUND</span> <span
+                                class="kp">STO</span></button>
+                        <button class="key key-num" data-value="4"><span class="ks">DEPR</span> <span
+                                class="kp">4</span> </button>
+                        <button class="key key-num" data-value="5"><span class="ks">△%</span> <span class="kp">5</span>
+                        </button>
+                        <button class="key key-num" data-value="6"><span class="ks">BRKEVN</span> <span
+                                class="kp">6</span> </button>
+                        <button class="key key-op" data-value="+"><span class="ks">nCr</span> <span class="kp">+</span>
+                        </button>
+                    </div>
+
+                    <!-- Row 8 – RCL 1 2 3 = -->
+                    <div class="krow">
+                        <button class="key key-mem" data-action="rcl"><span class="ks">&nbsp;</span> <span
+                                class="kp">RCL</span></button>
+                        <button class="key key-num" data-value="1"><span class="ks">DATE</span> <span
+                                class="kp">1</span> </button>
+                        <button class="key key-num" data-value="2"><span class="ks">ICONV</span> <span
+                                class="kp">2</span> </button>
+                        <button class="key key-num" data-value="3"><span class="ks">PROFIT</span> <span
+                                class="kp">3</span> </button>
+                        <button class="key key-eq" data-action="equals"><span class="ks">ANS</span> <span
+                                class="kp">=</span> </button>
+                    </div>
+
+                    <!-- Row 9 – CE|C 0 . +/- -->
+                    <div class="krow krow-last">
+                        <button class="key key-clr" data-action="clearAll"><span class="ks">CLR WORK</span><span
+                                class="kp">CE|C</span></button>
+                        <button class="key key-num" data-value="0"><span class="ks">MEM</span> <span class="kp">0</span>
+                        </button>
+                        <button class="key key-num" data-value="."><span class="ks">FORMAT</span><span
+                                class="kp">.</span> </button>
+                        <button class="key key-clr" data-action="plusMinus"><span class="ks">RESET</span> <span
+                                class="kp">+/−</span></button>
+                    </div>
+
+                </div><!-- /keypad -->
+            </div><!-- /calculator -->
+
+            <!-- Other Calculators Slider Section -->
+            <div class="other-calculators-section">
+                <div class="container">
+                    <div class="calc-slider-wrapper">
+                        <button class="slider-arrow prev-arrow" aria-label="Previous calculators" id="calcSliderPrev">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                        </button>
+
+                        <div class="calc-slider-track" id="calcSliderTrack">
+                            <a href="/amortizationcalculator" class="calc-card">
+                                <div class="calc-card-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"></path>
+                                    </svg>
+                                </div>
+                                <span class="calc-card-title">Amortization Calculator</span>
+                            </a>
+
+                            <a href="/cashflowcalculator" class="calc-card">
+                                <div class="calc-card-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                                        <polyline points="16 7 22 7 22 13"></polyline>
+                                    </svg>
+                                </div>
+                                <span class="calc-card-title">Cash Flow Calculator</span>
+                            </a>
+
+                            <a href="/tvmcalculator" class="calc-card">
+                                <div class="calc-card-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                    </svg>
+                                </div>
+                                <span class="calc-card-title">TVM Calculator</span>
+                            </a>
+
+                            <a href="/savingscalculator" class="calc-card">
+                                <div class="calc-card-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path
+                                            d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z">
+                                        </path>
+                                        <path d="M2 9v1c0 1.1.9 2 2 2h1"></path>
+                                        <path d="M16 11h.01"></path>
+                                    </svg>
+                                </div>
+                                <span class="calc-card-title">Savings Calculator</span>
+                            </a>
+                        </div>
+
+                        <button class="slider-arrow next-arrow" aria-label="Next calculators" id="calcSliderNext">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section><!-- /hero-area -->
+
+        <div class="page-content">
+            <section id="intro" class="section-block">
+                <div class="container">
+                    <div class="intro-main-cta">
+                        <h1>Free BA II Plus Financial Calculator Online, No Sign-Up</h1>
+                        <a href="#hero" class="cta-button-main">Start Calculating Now</a>
+                    </div>
+                    <header class="section-header">
+                        <h2>What is the BAII Plus Financial Calculator</h2>
+                    </header>
+                    <div class="grid-layout">
+                        <div class="text-content">
+                            <p>
+                                The baii plus financial calculator by Texas Instruments is the industry
+                                standard for finance professionals and students. Engineered for precision, the
+                                baii plus financial calculator excels at TVM and Cash Flow Analysis.
+                                Whether for CFA exams or financial modeling, our baii plus financial
+                                calculator simulator provides the exact logic and experience of the
+                                physical device.
+                            </p>
+                        </div>
+                        <div class="visual-content">
+                            <div class="content-image">
+                                <img src="calculator-usage.png"
+                                    alt="Using a BAII Plus Financial Calculator for financial planning" loading="lazy">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="features" class="section-block alt-bg">
+                <div class="container">
+                    <h2>Why Use the BAII Plus Financial Calculator Online?</h2>
+                    <p class="section-subtitle">
+                        The baii plus financial calculator online offers the same advanced worksheets for TVM, Cash
+                        Flow, and Bond calculations, ensuring that you never have to compromise on functionality while
+                        enjoying the convenience of a digital simulator.
+                    </p>
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon-wrapper">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                                    <path
+                                        d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <h3>Global Accessibility</h3>
+                            <p>Access the baii plus financial calculator online from any device,
+                                anywhere. Whether you are at a library or a coffee shop, your financial tools are always
+                                just a click away.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon-wrapper">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path
+                                        d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z">
+                                    </path>
+                                    <path
+                                        d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <h3>Muscle Memory</h3>
+                            <p>Our baii plus financial calculator online features the exact button
+                                layout and logic as the physical device, helping you build the essential muscle memory
+                                needed for exams.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon-wrapper">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                </svg>
+                            </div>
+                            <h3>Zero Cost Solution</h3>
+                            <p>Forget expensive hardware and battery replacements. Use the baii plus financial
+                                calculator online as a powerful, free alternative for all your complex
+                                financial operations.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="why-us" class="section-block">
+                <div class="container">
+                    <h2>What Makes Our BAII Plus Financial Calculator Stand Out?</h2>
+                    <p class="section-subtitle">
+                        Discover why thousands of finance professionals and students choose our simulator as their
+                        primary baii plus financial calculator for daily practice and complex analysis.
+                    </p>
+                    <div class="split-layout">
+                        <div class="split-visual">
+                            <img src="advanced-finance.png" alt="Advanced financial formulas and calculations"
+                                loading="lazy">
+                        </div>
+                        <div class="split-content">
+                            <div class="standout-item">
+                                <div class="item-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <circle cx="12" cy="12" r="6"></circle>
+                                        <circle cx="12" cy="12" r="2"></circle>
+                                    </svg>
+                                </div>
+                                <div class="item-text">
+                                    <h3>Authentic Precision</h3>
+                                    <p>Every mathematical operation on our baii plus financial calculator is rigorously
+                                        tested to match the output of the physical hardware, ensuring 100% reliability
+                                        for your results.</p>
+                                </div>
+                            </div>
+                            <div class="standout-item">
+                                <div class="item-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path
+                                            d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z">
+                                        </path>
+                                    </svg>
+                                </div>
+                                <div class="item-text">
+                                    <h3>Complete Worksheets</h3>
+                                    <p>Unlike simple web tools, our baii plus financial calculator fully supports
+                                        complex worksheets for Cash Flow, NPV, and IRR, providing a truly professional
+                                        environment.</p>
+                                </div>
+                            </div>
+                            <div class="standout-item">
+                                <div class="item-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                                        <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                                    </svg>
+                                </div>
+                                <div class="item-text">
+                                    <h3>Modern Performance</h3>
+                                    <p>Built with cutting-edge web technology, our baii plus financial calculator is
+                                        lightning fast and fully responsive across all your mobile and desktop devices.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="advanced" class="section-block alt-bg">
+                <div class="container">
+                    <h2>Advanced Calculations with the BAII Plus Financial Calculator</h2>
+                    <p class="section-subtitle">Master complex financial scenarios with specialized functions designed
+                        for professionals.</p>
+                    <div class="advanced-grid">
+                        <div class="adv-card">
+                            <div class="adv-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--sec-color)"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 3v18h18"></path>
+                                    <path d="m19 9-5 5-4-4-3 3"></path>
+                                </svg>
+                            </div>
+                            <h3>Bond Valuations</h3>
+                            <p>The baii plus financial calculator bond worksheet helps you calculate prices, yields to
+                                maturity, and accrued interest for fixed-income securities.</p>
+                        </div>
+                        <div class="adv-card">
+                            <div class="adv-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--sec-color)"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                            </div>
+                            <h3>Compounding Periods</h3>
+                            <p>Adjust interest compounding frequencies easily using the [P/Y] setting on your baii plus
+                                financial calculator for any financial product.</p>
+                        </div>
+                        <div class="adv-card">
+                            <div class="adv-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--sec-color)"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 20v-6M6 20V10M18 20V4"></path>
+                                </svg>
+                            </div>
+                            <h3>Statistical Analysis</h3>
+                            <p>Perform one or two-variable statistics with 4 different regression models directly on the
+                                baii plus financial calculator simulator.</p>
+                        </div>
+                        <div class="adv-card">
+                            <div class="adv-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--sec-color)"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M6 3h12l4 6-10 12L2 9z"></path>
+                                    <path d="M11 3 8 9l4 12 4-12-3-6"></path>
+                                    <path d="M2 9h20"></path>
+                                </svg>
+                            </div>
+                            <h3>Professional Accuracy</h3>
+                            <p>Built for the CFA section of finance curriculum, our baii plus financial calculator
+                                ensures precision in every high-stakes calculation.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="testimonials" class="section-block">
+                <div class="container">
+                    <h2>What Users Say About Our BAII Plus Financial Calculator</h2>
+                    <p class="section-subtitle">Join thousands of students and professionals who rely on our simulator
+                        every day.</p>
+                    <div class="testimonials-grid">
+                        <div class="testimonial-card">
+                            <div class="stars">★★★★★</div>
+                            <div class="user-profile">
+                                <img src="https://i.pravatar.cc/100?u=sarah" alt="Sarah J." class="user-avatar">
+                                <div class="user-info">
+                                    <strong>Sarah J.</strong>
+                                    <span>CFA Candidate</span>
+                                </div>
+                            </div>
+                            <p>"This baii plus financial calculator simulator was a lifesaver for my CFA prep. The logic
+                                and button layout are identical to the real TI hardware!"</p>
+                        </div>
+                        <div class="testimonial-card">
+                            <div class="stars">★★★★★</div>
+                            <div class="user-profile">
+                                <img src="https://i.pravatar.cc/100?u=david" alt="David M." class="user-avatar">
+                                <div class="user-info">
+                                    <strong>David M.</strong>
+                                    <span>Financial Analyst</span>
+                                </div>
+                            </div>
+                            <p>"I love the clean interface. Having a reliable baii plus financial calculator available
+                                in my browser means I can work on models anywhere without carrying extra gear."</p>
+                        </div>
+                        <div class="testimonial-card">
+                            <div class="stars">★★★★★</div>
+                            <div class="user-profile">
+                                <img src="https://i.pravatar.cc/100?u=emily" alt="Emily R." class="user-avatar">
+                                <div class="user-info">
+                                    <strong>Emily R.</strong>
+                                    <span>Finance Student</span>
+                                </div>
+                            </div>
+                            <p>"The best baii plus financial calculator online. It helped me master the TVM functions
+                                quickly and accurately for my university midterms."</p>
+                        </div>
+                        <div class="testimonial-card">
+                            <div class="stars">★★★★★</div>
+                            <div class="user-profile">
+                                <img src="https://i.pravatar.cc/100?u=james" alt="James L." class="user-avatar">
+                                <div class="user-info">
+                                    <strong>James L.</strong>
+                                    <span>MBA Student</span>
+                                </div>
+                            </div>
+                            <p>"Mastering the Bond worksheet on the baii plus financial calculator was so much easier
+                                with this online version. Highly recommended for any MBA course!"</p>
+                        </div>
+                        <div class="testimonial-card">
+                            <div class="stars">★★★★★</div>
+                            <div class="user-profile">
+                                <img src="https://i.pravatar.cc/100?u=jessica" alt="Jessica W." class="user-avatar">
+                                <div class="user-info">
+                                    <strong>Jessica W.</strong>
+                                    <span>Investment Analyst</span>
+                                </div>
+                            </div>
+                            <p>"Perfect for quick checks when I don't have my physical baii plus financial calculator on
+                                me. The accuracy is spot on for NPV and IRR calculations."</p>
+                        </div>
+                        <div class="testimonial-card">
+                            <div class="stars">★★★★★</div>
+                            <div class="user-profile">
+                                <img src="https://i.pravatar.cc/100?u=mark" alt="Mark T." class="user-avatar">
+                                <div class="user-info">
+                                    <strong>Mark T.</strong>
+                                    <span>CPA Professional</span>
+                                </div>
+                            </div>
+                            <p>"Finally a baii plus financial calculator online that actually supports all the worksheet
+                                modes. A great professional tool for daily accounting tasks."</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="cta" class="section-block cta-section">
+                <div class="container">
+                    <div class="cta-banner">
+                        <div class="cta-content">
+                            <h2>Ready to Master Your Finance Exams?</h2>
+                            <p>Join over 50,000 students and professionals using the baii plus financial calculator
+                                online for precision practice and accurate results.</p>
+                            <a href="#hero" class="cta-button">Try It for Free Now</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <footer class="site-footer">
+            <div class="container">
+                <div class="footer-grid">
+                    <div class="footer-brand">
+                        <a href="/" class="logo">
+                            <img src="logo.png" alt="Financial Calculator Logo" class="footer-logo">
+                            Financial Calculator
+                        </a>
+                        <p>Professional financial tools for students and experts.</p>
+                    </div>
+                    <div class="footer-links">
+                        <strong>Calculators</strong>
+                        <ul>
+                            <li><a href="/">BA II Plus Financial Calculator</a></li>
+                            <li><a href="/amortizationcalculator">Amortization Calculator</a></li>
+                            <li><a href="/cashflowcalculator">Cash Flow Calculator</a></li>
+                            <li><a href="/tvmcalculator">TVM Calculator</a></li>
+                            <li><a href="/savingscalculator">Savings Calculator</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-legal">
+                        <strong>Others</strong>
+                        <ul>
+                            <li><a href="/userguide">User Guides</a></li>
+                            <li><a href="/about">About Us</a></li>
+                            <li><a href="/privacy">Privacy Policy</a></li>
+                            <li><a href="/terms">Terms of Service</a></li>
+                            <li><a href="/contact">Contact Us</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <p>Disclaimer: This website has no affiliation, endorsement or connection with Texas Instruments.
+                        This website is solely for educational and learning purposes and assumes no guarantee or
+                        responsibility for its functionality or performance. By using this website, you indicate your
+                        understanding of this disclaimer and agree to bear the risks associated with its use. The
+                        developers are not responsible for any trademark or patent issues that may arise from the use of
+                        this website.</p>
+                </div>
+            </div>
+        </footer>
+    </div><!-- /app-shell -->
+
+    <script src="script.js?v=20260909"></script>
+</body>
+
+</html>
