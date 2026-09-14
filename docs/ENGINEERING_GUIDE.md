@@ -134,9 +134,14 @@ exactly.
 1. **The device is centred in the viewport.** Upstream it sits at the top of a long page;
    with everything below removed, centring is what makes it look finished.
 2. **Worksheet panels are positioned outside the device** — left when there is room (landscape
-   and ≥1120px), below the whole device otherwise. Upstream they expand *between* the display
-   and the keypad, pushing the keypad off-screen. The device never moves.
-3. Phones (≤480px) keep upstream's full-bleed design; only the hero padding is trimmed.
+   and ≥1120px), below it otherwise. Upstream they expand *between* the display and the keypad,
+   pushing the keypad off-screen. The device never moves.
+3. **Below means below the keypad.** On a phone the device and its box are not the same thing:
+   upstream stretches it to `min-height: 100vh`, so the box ends ~190px after the last key and
+   anything measured from the box lands in dead space. The phone block gives the device
+   `display: flex` and reorders its children so the dock follows the keypad — the device's
+   leftover space then falls below the panel instead of between them. Away from phones the box
+   is only as tall as its contents and absolute positioning is already tight.
 
 The 1120px threshold is derived, not chosen: `420 (device) + 2 × (300 panel + 20 gap) + 32 padding
 = 1092`, rounded up for slack. If you change the panel width, recompute it.
@@ -484,9 +489,12 @@ cmp upstream_raw/script.js build/script.js && echo "逐字节一致"
 三处改动，全在这一个文件里。把它从构建中移除，即可完全恢复上游布局。
 
 1. **计算器在视口内垂直居中。** 线上它位于长页面顶部；下方内容移除后，居中才能让它看起来完整。
-2. **工作表面板定位在计算器外部** —— 放得下时在左侧（横屏且 ≥1120px），否则在整个计算器下方。
+2. **工作表面板定位在计算器外部** —— 放得下时在左侧（横屏且 ≥1120px），否则在其下方。
    线上它们是插在显示屏和键盘**之间**展开的，会把键盘挤出屏幕。计算器本身不动。
-3. 手机（≤480px）保留上游的全宽铺满设计，只是裁掉了 hero 内边距。
+3. **"下方"指的是键盘下方。** 在手机上计算器本体与其方框并不是一回事：上游把它拉伸到
+   `min-height: 100vh`，方框比最后一个按键还多出约 190px，任何按方框度量的东西都会落进这段空白。
+   手机端的分支给计算器加上 `display: flex` 并调整子元素顺序，让容器紧跟键盘 —— 计算器多出的空间
+   于是落在面板下方，而不是两者之间。非手机尺寸下方框与内容同高，绝对定位本就是紧贴的。
 
 1120px 这个阈值是算出来的，不是拍的：`420（计算器）+ 2 ×（300 面板 + 20 间距）+ 32 内边距 = 1092`，
 向上取整留余量。若改动面板宽度，请重新计算。

@@ -46,31 +46,9 @@
 }
 
 
-/* 3. Phones.
-   ─────────────────────────────────────────────────────────────────────────
-   Upstream already switches the device to a full-bleed, `min-height: 100vh`
-   panel at <=480px -- no border, no rounding, edge to edge. That is a
-   deliberate mobile design and is kept as-is. The hero padding just has to go,
-   otherwise the device is pushed off the bottom of the screen, and centring is
-   meaningless for something already viewport-height. */
-@media (max-width: 480px) {
-  .hero-area {
-    /* Vertical padding goes; the horizontal gutters stay. Upstream's 1rem side
-       padding is what gives the device its 358px width at a 390px viewport --
-       dropping it too would stretch the device to a full-bleed 390px and change
-       its proportions. Keeping it means the offline device is exactly the width
-       the live one is. */
-    padding: 0 1rem;
-    gap: 0;
-  }
-
-  .app-shell {
-    justify-content: flex-start;
-  }
-}
 
 
-/* 4. Move the worksheet panels outside the device.
+/* 3. Move the worksheet panels outside the device.
    ─────────────────────────────────────────────────────────────────────────
    Upstream, opening TVM / CF / STO-RCL expands a panel between the display and
    the keypad, so the device grows downwards and the keypad is pushed off-screen.
@@ -129,5 +107,64 @@
     right: calc(100% + 20px);  /* out to its left */
     left: auto;
     width: 300px;
+  }
+}
+
+
+/* 4. Phones.
+   ─────────────────────────────────────────────────────────────────────────
+   Upstream already switches the device to a full-bleed, `min-height: 100vh`
+   panel at <=480px -- no border, no rounding, edge to edge. That is a
+   deliberate mobile design and is kept as-is. The hero padding just has to go,
+   otherwise the device is pushed off the bottom of the screen, and centring is
+   meaningless for something already viewport-height. */
+@media (max-width: 480px) {
+  .hero-area {
+    /* Vertical padding goes; the horizontal gutters stay. Upstream's 1rem side
+       padding is what gives the device its 358px width at a 390px viewport --
+       dropping it too would stretch the device to a full-bleed 390px and change
+       its proportions. Keeping it means the offline device is exactly the width
+       the live one is. */
+    padding: 0 1rem;
+    gap: 0;
+  }
+
+  .app-shell {
+    justify-content: flex-start;
+  }
+
+  /* Phones need the dock reordered rather than positioned.
+     ───────────────────────────────────────────────────────────────────────
+     Upstream stretches the device to a full screen here (`min-height: 100vh`),
+     and the keypad stops well short of the bottom -- 189px short on a 390x844
+     phone. Absolute positioning measures from the device's box, not from where
+     its content ends, so the dock landed below that dead space: the panel sat
+     209px adrift of the keypad while looking properly attached on a desktop,
+     where the device is only as tall as its contents.
+
+     Making the device a flex column lets the dock be reordered instead. It is
+     already the middle child in the DOM -- display, dock, keypad -- so putting
+     it after the keypad with `order` places it directly beneath them, and the
+     device's leftover space ends up below the panel rather than between them.
+
+     Nothing visual changes while no panel is open: the children keep their
+     normal order and the device stays full-height with the same background. */
+  .calculator {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .display {
+    order: 1;
+  }
+
+  .keypad {
+    order: 2;
+  }
+
+  .panel-dock {
+    order: 3;
+    position: static;
+    margin-top: 20px;   /* the gap the absolutely positioned version used */
   }
 }
