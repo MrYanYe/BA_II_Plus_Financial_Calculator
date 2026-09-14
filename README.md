@@ -18,6 +18,8 @@ network.
 New here and want to change something? Read the **[Engineering Guide](docs/ENGINEERING_GUIDE.md)** —
 it covers the pipeline, where each kind of change belongs, and the traps that are not obvious.
 
+![The calculator, centred in the browser window](docs/images/desktop-centred.png)
+
 ---
 
 ## Quick start
@@ -32,11 +34,11 @@ and Safari), under **iPhone, iPad, Pixel and Galaxy** device emulation, and afte
 directory whose name contains spaces and non-ASCII characters. No absolute paths anywhere, so it
 runs from wherever you put it.
 
+<img src="docs/images/phone.png" alt="The same file on a phone, full-bleed and touch-driven" width="300" />
+
 ---
 
 ## What this is
-
-![Build pipeline](docs/images/pipeline.svg)
 
 The original page is a marketing site wrapped around a calculator: navbar, a carousel of other
 calculators, five content sections, testimonials, a footer, Google AdSense, Google Tag Manager
@@ -99,7 +101,9 @@ This was measured against the live site, not assumed. See [Verification](#verifi
    queries re-evaluate on every resize, so dragging the window across the threshold switches
    modes with no JavaScript involved.
 
-   ![Worksheet placement](docs/images/layout.svg)
+   ![The TVM worksheet open to the left of the device](docs/images/worksheet-left.png)
+
+   ![The same worksheet, below the device, in a window too narrow to sit side by side](docs/images/worksheet-below.png)
 
    The CSS lives in [`src/offline_overrides.css`](src/offline_overrides.css) with the reasoning
    documented inline.
@@ -188,7 +192,7 @@ BAII_Plus_Financial_Calculator_Offline_2026.html   the deliverable — one self-
 │
 └── docs/
     ├── ENGINEERING_GUIDE.md    how it works and what will bite you (EN, ZH)
-    ├── images/                 the two diagrams above
+    ├── images/                 4 real screenshots, used by both languages
     └── BAIIPlus_Guidebook_*.pdf
 ```
 
@@ -310,6 +314,11 @@ independent web emulation of it, and so is the upstream site.
 
 **成品只有一个文件：[`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html)（199 KB）。**
 
+想改动什么？请先读 **[工程指南](docs/ENGINEERING_GUIDE.md)** —— 里面讲了流水线、每类改动该动哪里，
+以及那些不那么明显的坑。
+
+![计算器在浏览器窗口中垂直居中](docs/images/desktop-centred.png)
+
 ---
 
 ## 快速开始
@@ -317,7 +326,12 @@ independent web emulation of it, and so is the upstream site.
 下载 `BAII_Plus_Financial_Calculator_Offline_2026.html` 直接打开，就这么简单。放在U盘里、作为邮件附件、
 丢进手机下载目录、放在带空格或中文的路径下都能用 —— 这个文件不引用自身之外的任何东西。
 
-已在 Windows、macOS、Linux、iOS、Android 上的 Chrome、Edge、Firefox、Safari 实测可用。
+由 [`tools/verify_compatibility.py`](tools/verify_compatibility.py) 实测得出，不是口头保证：
+在 **Chromium、Firefox、WebKit**（即 Chrome/Edge、Firefox、Safari 的内核）上行为完全一致，
+在 **iPhone、iPad、Pixel、Galaxy** 设备模拟下正常，复制到名称含空格与非 ASCII 字符的目录后依然正常。
+项目中不存在任何绝对路径，因此放在哪里都能跑。
+
+<img src="docs/images/phone.png" alt="同一个文件在手机上：全宽铺满、支持触摸操作" width="300" />
 
 ---
 
@@ -378,6 +392,10 @@ independent web emulation of it, and so is the upstream site.
    计算器左右各有 `(100vw − 32 − 420) / 2` 的空间；300px 的面板加 20px 间距需要一侧 320px，
    即 420 + 640 + 32 = 1092，向上取整留些余量。媒体查询在每次尺寸变化时都会重新求值，因此拖动
    窗口跨越阈值时会实时切换，完全不涉及 JavaScript。
+
+   ![TVM 工作表展开在计算器左侧](docs/images/worksheet-left.png)
+
+   ![同一个工作表：窗口不够宽时改为在计算器下方展开](docs/images/worksheet-below.png)
 
    CSS 写在 [`src/offline_overrides.css`](src/offline_overrides.css) 中，文件内注明了理由。
 
@@ -458,7 +476,7 @@ BAII_Plus_Financial_Calculator_Offline_2026.html   成品 —— 单个自包含
 │
 └── docs/
     ├── ENGINEERING_GUIDE.md    工程介绍与工作流（英文、中文）
-    ├── images/                 上面两张图
+    ├── images/                 4 张实机截图，中英文共用同一组
     └── BAIIPlus_Guidebook_*.pdf
 ```
 

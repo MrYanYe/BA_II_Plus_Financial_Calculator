@@ -46,7 +46,7 @@ To run the checks you also need `pip install playwright pillow` and
 |---|---|
 | Change how it looks | [`src/offline_overrides.css`](../src/offline_overrides.css) |
 | Change how it behaves | [`src/ce_c_behavior.js`](../src/ce_c_behavior.js) |
-| Understand the pipeline | [`docs/images/pipeline.svg`](images/pipeline.svg) |
+| Understand the pipeline | [§3 Architecture](#3-architecture) — the stage table |
 | Know what was changed from upstream | [§5 Deliberate deviations](#5-deliberate-deviations) |
 | Know why a check exists | [§6 Verification](#6-verification) |
 | Avoid a nasty surprise | [§7 Traps](#7-traps) |
@@ -54,8 +54,6 @@ To run the checks you also need `pip install playwright pillow` and
 ---
 
 ## 3. Architecture
-
-![Build pipeline](images/pipeline.svg)
 
 Three stages, one script each, plus a verification layer that sits outside the build.
 
@@ -142,7 +140,9 @@ exactly.
 The 1120px threshold is derived, not chosen: `420 (device) + 2 × (300 panel + 20 gap) + 32 padding
 = 1092`, rounded up for slack. If you change the panel width, recompute it.
 
-![Worksheet placement](images/layout.svg)
+![The TVM worksheet open to the left of the device](images/worksheet-left.png)
+
+![The same worksheet below the device when there is no room beside it](images/worksheet-below.png)
 
 Centring uses `justify-content: safe center`. That is not decoration: with a worksheet open the
 device is ~1088px tall and overflows a 768px laptop screen, and plain `center` would push the
@@ -385,7 +385,7 @@ python tools/build_single_file.py    # build/ -> 成品
 |---|---|
 | 改外观 | [`src/offline_overrides.css`](../src/offline_overrides.css) |
 | 改行为 | [`src/ce_c_behavior.js`](../src/ce_c_behavior.js) |
-| 理解流水线 | [`docs/images/pipeline.svg`](images/pipeline.svg) |
+| 理解流水线 | [§3 架构](#3-架构) —— 阶段对照表 |
 | 知道改了上游哪些东西 | [§5 有意为之的偏离](#5-有意为之的偏离) |
 | 知道某个检查为什么存在 | [§6 验证](#6-验证) |
 | 避开坑 | [§7 陷阱](#traps-zh) |
@@ -393,8 +393,6 @@ python tools/build_single_file.py    # build/ -> 成品
 ---
 
 ## 3. 架构
-
-![构建流水线](images/pipeline.svg)
 
 三个阶段，每个阶段一个脚本，外加一层独立于构建之外的验证。
 
@@ -473,7 +471,9 @@ cmp upstream_raw/script.js build/script.js && echo "逐字节一致"
 1120px 这个阈值是算出来的，不是拍的：`420（计算器）+ 2 ×（300 面板 + 20 间距）+ 32 内边距 = 1092`，
 向上取整留余量。若改动面板宽度，请重新计算。
 
-![工作表面板位置](images/layout.svg)
+![TVM 工作表展开在计算器左侧](images/worksheet-left.png)
+
+![放不下时，同一个工作表改为在计算器下方展开](images/worksheet-below.png)
 
 居中用的是 `justify-content: safe center`，这不是装饰：打开工作表后计算器高约 1088px，
 会超出 768px 的笔记本屏幕，用普通的 `center` 会把顶部推到滚动起点之上，导致够不到。
