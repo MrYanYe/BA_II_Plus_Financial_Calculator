@@ -21,6 +21,11 @@ It also checks relative file paths written in the prose -- `docs/images/x.svg`,
 `src/y.css` -- because a diagram that fails to render in a README looks like a
 broken repository, and nothing else in the toolchain would notice.
 
+And it checks that every markdown table is well formed. A pipe in a cell splits
+it, and backticks do NOT protect it: GitHub renders `| a | b | c` as one cell, then
+the rest of the row shifts right. The row still looks fine in the source, so the
+only way to catch it is to count. Write a literal pipe as \| inside a cell.
+
 Usage:
     python tools/check_readme_links.py
 """
@@ -56,6 +61,36 @@ def heading_slugs(text: str) -> set[str]:
     return slugs
 
 
+def check_tables(text: str, rel) -> list[str]:
+    """Every row of a markdown table must have the same cell count as its header."""
+    escaped = "\|"          # a backslash-escaped pipe is content, not a delimiter
+
+    def cells(line: str) -> int:
+        return line.replace(escaped, "").count("|") - 1
+
+    problems: list[str] = []
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        if lines[i].lstrip().startswith("|"):
+            block = []
+            while i < len(lines) and lines[i].lstrip().startswith("|"):
+                block.append((i + 1, lines[i]))
+                i += 1
+            if len(block) >= 2:
+                want = cells(block[0][1])
+                for n, line in block:
+                    got = cells(line)
+                    if got != want:
+                        problems.append(
+                            f"{rel}:{n}: table row has {got} cells, header has {want} "
+                            f"-- an unescaped | splits it"
+                        )
+        else:
+            i += 1
+    return problems
+
+
 def check_doc(path: Path) -> list[str]:
     """Return problem descriptions for one document; empty means it is clean."""
     text = path.read_text(encoding="utf-8")
@@ -82,7 +117,10 @@ def check_doc(path: Path) -> list[str]:
             kind = "image" if ref in images and not ref.startswith("http") else "file link"
             problems.append(f"{rel}: {kind} does not exist: {ref}")
 
-    print(f"  {rel}: {len(anchors)} anchor link(s), {len(paths)} relative path(s)")
+    problems += check_tables(text, rel)
+
+    print(f"  {rel}: {len(anchors)} anchor link(s), {len(paths)} relative path(s), "
+          f"tables checked")
     return problems
 
 
