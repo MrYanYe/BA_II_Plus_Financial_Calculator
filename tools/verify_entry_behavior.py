@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 """
-Verification -- verify_sto_rcl.py
+Verification -- verify_entry_behavior.py
 
-STO and RCL as they work on a real BA II Plus -- press the key, then a digit --
-while the original register panel is still there and still works.
+Two things a real BA II Plus does that the web version does not, both about when
+an entry ends:
+
+  * STO and RCL work from the keypad -- press the key, then a digit -- while the
+    original register panel is still there and still works.
+  * A finished calculation finishes the entry. After `1 + 2 =` the 3.00 is a
+    result, so pressing `4` starts a new number rather than extending it to 34.
+    Operators go the other way: they keep the value, because it is the left
+    operand.
 
 Checks, following the flows in the request:
 
@@ -11,6 +18,11 @@ Checks, following the flows in the request:
                 route does the same thing, so the two cannot drift apart.
   2. fresh      STO is a completed operation: the next digit starts a new entry,
                 so `82 STO 2` then `2` `3` shows 23 and not 8223.
+  2b. result    The same after `=`, `√`, `x²`, `1/x` and `%`: a digit starts a new
+                calculation, but an operator keeps the result. Reported as
+                `1 + 2 =` then `4` showing 34 instead of 4.
+  2c. operator  A recall followed by an operator keeps the recalled value. It used
+                to be dropped, so `RCL N` then `+` showed `0+`.
   3. recall     `RCL 1` brings a value back, formatted.
   4. mid        `23 + RCL 1 =` recalls into a running calculation, which the
                 panel alone could never do -- it replaced the whole expression.
@@ -28,7 +40,7 @@ Checks, following the flows in the request:
 
 Runs entirely against the local artifact; no network needed.
 
-    python tools/verify_sto_rcl.py [path/to/artifact.html]
+    python tools/verify_entry_behavior.py [path/to/artifact.html]
 """
 
 from __future__ import annotations
@@ -261,6 +273,53 @@ def main() -> int:
                 print(f"  FAIL  RCL {target.upper()}: screen {got!r}, "
                       f"variable {stored!r} -> {after!r}")
 
+        # ---------- 2b: a result key also finishes the entry ----------
+        print("\n=== 2b. after a result the next digit starts a new calculation ===")
+        for action, setup, shown in (
+            ("equals", (("v", "1"), ("v", "+"), ("v", "2")), "3.00"),
+            ("sqrt", (("v", "9"),), "3.00"),
+            ("square", (("v", "3"),), "9.00"),
+            ("reciprocal", (("v", "4"),), "0.25"),
+            ("percent", (("v", "5"), ("v", "0")), "0.50"),
+        ):
+            reset(page)
+            keys(page, *setup)
+            key(page, "a", action)
+            page.wait_for_timeout(150)
+            if screen(page) != shown:
+                failures.append(f"{action} produced {screen(page)!r}, expected {shown!r}")
+                print(f"  FAIL  {action} produced {screen(page)!r}, expected {shown!r}")
+                continue
+            key(page, "v", "7")
+            page.wait_for_timeout(150)
+            got = screen(page)
+            if got == "7":
+                print(f"  PASS  after {action}: a digit starts a new entry")
+            else:
+                failures.append(f"after {action}: typing 7 gave {got!r}, expected '7'")
+                print(f"  FAIL  after {action}: typing 7 gave {got!r}")
+
+        print("\n--- but an operator keeps the result ---")
+        reset(page)
+        keys(page, ("v", "1"), ("v", "+"), ("v", "2"), ("a", "equals"))
+        page.wait_for_timeout(150)
+        keys(page, ("v", "*"), ("v", "3"), ("a", "equals"))
+        page.wait_for_timeout(150)
+        check("1+2= then *3=", screen(page), "9.00")
+
+        # ---------- 2c: an operator after a recall keeps the value ----------
+        print("\n=== 2c. an operator after a recall keeps the recalled value ===")
+        reset(page)
+        page.evaluate("MEM[1] = 5;")
+        keys(page, ("a", "rcl"), ("v", "1"))
+        page.wait_for_timeout(150)
+        keys(page, ("v", "+"))
+        page.wait_for_timeout(150)
+        check("RCL 1 then +", screen(page), "5+")
+        keys(page, ("v", "6"), ("a", "equals"))
+        page.wait_for_timeout(150)
+        check("then 6 =", screen(page), "11.00")
+
         # ---------- 6: ten registers, no aliasing ----------
         print("\n=== 6. ten independent registers ===")
         reset(page)
@@ -370,8 +429,8 @@ def main() -> int:
     if failures:
         print("RESULT: FAILED -- " + "; ".join(failures))
         return 1
-    print("RESULT: PASSED -- STO/RCL from the keypad and the panel, "
-          "including mid-expression and TVM recall")
+    print("RESULT: PASSED -- STO/RCL from keypad and panel, TVM recall, "
+          "and a finished calculation starts a new entry")
     return 0
 
 
