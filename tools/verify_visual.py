@@ -120,15 +120,26 @@ def main() -> int:
             for label, url in (("live", LIVE), ("offline", LOCAL.as_uri())):
                 page = browser.new_page(viewport=vp)
                 if label == "live":
-                    # domcontentloaded + an explicit wait for the widget, not
-                    # networkidle: the live page runs Google Tag Manager, AdSense
-                    # and Clarity, which keep polling, so the network never goes
-                    # idle and networkidle times out at random.
                     page.goto(url, wait_until="domcontentloaded", timeout=90_000)
                 else:
-                    page.goto(url, wait_until="load")
+                    page.goto(url, wait_until="domcontentloaded")
                 page.wait_for_selector("#calculator", timeout=30_000)
-                page.wait_for_timeout(800)
+                # Neither of Playwright's page-level waits suits this page.
+                # networkidle never fires because Tag Manager, AdSense and Clarity
+                # poll continuously; `load` often never fires either, because an ad
+                # or analytics resource stays pending indefinitely. So readiness is
+                # asserted directly instead -- the two things the measurements and
+                # the screenshot actually depend on: the widget must be styled, and
+                # the webfonts must have settled. Without the font wait a screenshot
+                # taken under load renders the whole keypad in a fallback face,
+                # tens of thousands of pixels adrift while the geometry still matches.
+                page.wait_for_function(
+                    "() => { const el = document.getElementById('calculator');"
+                    " return !!el && getComputedStyle(el).backgroundImage !== 'none'; }",
+                    timeout=30_000,
+                )
+                page.evaluate("() => document.fonts.ready")
+                page.wait_for_timeout(400)
 
                 probe = page.evaluate(FONT_PROBE)
                 geom = page.evaluate(GEOMETRY)
@@ -235,6 +246,12 @@ def main() -> int:
                     )
                     print(f"  FAIL  {over} px differ by more than {MAX_CHANNEL_DELTA}/255 "
                           f"(worst {worst}/255)")
+                    # Leave something to look at: the pair plus an amplified diff.
+                    import numpy as _np
+                    from PIL import Image as _Image
+                    amp = _np.clip(delta.sum(axis=2) * 4, 0, 255).astype("uint8")
+                    _Image.fromarray(amp).save(SHOTS / f"{vp_name}__DIFF.png")
+                    print(f"        wrote {vp_name}__DIFF.png alongside the pair")
                 elif nz == 0:
                     print(f"  PASS  widget pixel-identical ({a.size[0]}x{a.size[1]})")
                 else:
