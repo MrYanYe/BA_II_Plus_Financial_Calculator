@@ -285,7 +285,7 @@ falls back without changing a single character of text).
 | `verify_parity.py` | Behaviour and markup still match the live site — 24 sequences, 106 display states | yes |
 | `verify_visual.py` | Fonts embedded and applied; size, position and pixels match live | yes |
 | `verify_panel_layout.py` | Panels outside the device, stacked not overlapping, device pinned, live resize | no |
-| `verify_ce_c.py` | The two-stage CE|C, and that worksheets and `CLR WORK` are untouched | no |
+| `verify_ce_c.py` | The two-stage CE\|C, and that worksheets and `CLR WORK` are untouched | no |
 | `verify_panel_focus.py` | No panel steals focus or scrolls the page on open; tapping a field still focuses it | no |
 | `verify_entry_behavior.py` | STO/RCL from keypad and panel, TVM recall, and the fresh-entry rule after `=`, the maths keys and a store. Ten registers, cancel paths, Chn and AOS | no |
 | `verify_compatibility.py` | Portable paths; works on Chromium/Firefox/WebKit and 5 mobile devices; runs after relocation | no |
@@ -412,7 +412,7 @@ to edit `script.js`, re-read §5.3 — a separate file has worked twice.
 | **the device** | the calculator body itself — `<div id="calculator">` |
 | **the dock** | `.panel-dock`, the flex column holding the three worksheet panels |
 | **worksheet panel** | TVM, cash flow, or the STO/RCL register overlay |
-| **CLR WORK** | `2ND` + `CE|C`. Upstream behaviour, untouched |
+| **CLR WORK** | `2ND` + `CE\|C`. Upstream behaviour, untouched |
 | **CLR TVM** | `2ND` + `FV`. Clears the TVM variables |
 | **Chn / AOS** | chain vs algebraic evaluation order |
 | **the artifact** | `BAII_Plus_Financial_Calculator_Offline_2026.html`, the deliverable |
@@ -692,7 +692,7 @@ STO/RCL 寄存器面板没有输入框，本来就不受影响。
 | `verify_parity.py` | 行为与 DOM 仍与线上一致 —— 24 组序列、106 个显示状态 | 是 |
 | `verify_visual.py` | 字体已内嵌并生效；尺寸、位置、像素与线上一致 | 是 |
 | `verify_panel_layout.py` | 面板在计算器外部、堆叠不重叠、计算器不动、缩放实时切换 | 否 |
-| `verify_ce_c.py` | 两段式 CE|C，且工作表与 `CLR WORK` 未受影响 | 否 |
+| `verify_ce_c.py` | 两段式 CE\|C，且工作表与 `CLR WORK` 未受影响 | 否 |
 | `verify_panel_focus.py` | 打开面板不抢焦点、不滚动页面；点按字段仍能聚焦 | 否 |
 | `verify_entry_behavior.py` | STO/RCL 键盘与面板两种操作、TVM 调用，以及 `=`、各数学键与存储之后的重新开始输入规则。十个寄存器、取消路径、Chn 与 AOS | 否 |
 | `verify_compatibility.py` | 路径可移植；Chromium/Firefox/WebKit 与 5 种移动端可用；换位置后仍正常 | 否 |
@@ -815,7 +815,7 @@ git checkout develop && git merge --no-ff main    # 回合并
 | **计算器本体（the device）** | 计算器机身，即 `<div id="calculator">` |
 | **容器（the dock）** | `.panel-dock`，承载三个工作表面板的 flex 列 |
 | **工作表面板** | TVM、现金流，或 STO/RCL 寄存器面板 |
-| **CLR WORK** | `2ND` + `CE|C`。上游行为，未作改动 |
+| **CLR WORK** | `2ND` + `CE\|C`。上游行为，未作改动 |
 | **CLR TVM** | `2ND` + `FV`。清除 TVM 变量 |
 | **Chn / AOS** | 链式 vs 代数求值顺序 |
 | **成品（the artifact）** | `BAII_Plus_Financial_Calculator_Offline_2026.html` |
