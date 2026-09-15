@@ -418,6 +418,16 @@ to edit `script.js`, re-read §5.3 — a separate file has worked twice.
 
 ## 11. Provenance and licence
 
+The repository is MIT — see [LICENSE](../LICENSE). That covers the original work: the pipeline in
+`tools/`, the overrides and patches in `src/`, and the documentation.
+
+It does **not** cover the calculator. `styles.css` and `script.js` are the upstream site's files,
+redistributed unmodified; copyright in them is the upstream author's, and this repository cannot
+grant rights it does not hold. The same file also records no warranty, no liability, not financial
+advice, and no affiliation with Texas Instruments. `verify_parity.py` and `verify_visual.py`
+compare against the live site and need network access; they are not part of the licence question,
+just worth knowing they reach out.
+
 The calculator's design, logic and styling are the work of
 [baiiplusfinancialcalculator.com](https://baiiplusfinancialcalculator.com/), which hosts it free
 and monetises it with ads. This repository is an offline packaging for personal use, **not a
@@ -807,6 +817,14 @@ git checkout develop && git merge --no-ff main    # 回合并
 ---
 
 ## 11. 来源与许可
+
+本仓库采用 MIT 许可 —— 见 [LICENSE](../LICENSE)。它覆盖本项目原创的部分：`tools/` 下的流水线、
+`src/` 下的覆盖样式与补丁，以及文档。
+
+它**不**覆盖计算器本身。`styles.css` 与 `script.js` 是上游站点的文件，原样转载；版权归上游作者，
+本仓库无权授予自己并不持有的权利。同一文件中还写明：不提供担保、不承担责任、不构成财务建议、
+与德州仪器无关联。另外，`verify_parity.py` 与 `verify_visual.py` 需要联网与线上站点比对 ——
+这与许可无关，只是说明它们会访问网络。
 
 计算器的设计、逻辑与样式归 [baiiplusfinancialcalculator.com](https://baiiplusfinancialcalculator.com/)
 所有，该站免费提供并以广告变现。本仓库是供个人使用的离线打包，**不是重新实现**，不影响原作者的权利。
