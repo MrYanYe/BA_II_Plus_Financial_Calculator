@@ -1,0 +1,102 @@
+MIT License
+
+Copyright (c) 2026 MrYanYe
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+================================================================================
+ADDITIONAL NOTICE
+================================================================================
+
+The MIT licence above covers the original work in this repository. It does not
+cover everything the repository contains, and it is not a promise that the
+software is fit for any particular purpose. Please read this part too.
+
+--------------------------------------------------------------------------------
+1. THIRD-PARTY CONTENT IS NOT LICENSED HERE
+--------------------------------------------------------------------------------
+
+The calculator this repository packages is not its author's original work.
+
+The calculator's design, keypad layout, calculation logic and visual styling
+originate from https://baiiplusfinancialcalculator.com/. The files
+`upstream_raw/styles.css`, `upstream_raw/script.js`, `upstream_raw/index.html`
+and the webfonts are that site's files, redistributed here unmodified. Copyright
+in them belongs to their author, who is not affiliated with this repository.
+
+The MIT licence above applies ONLY to the work added here: the build pipeline
+under `tools/`, the offline overrides and behaviour patches under `src/`, and the
+documentation. It makes no claim over the upstream files and cannot grant you
+rights that the upstream author has not granted.
+
+If you are the rights holder of the upstream content and want it removed, open
+an issue and it will be taken down.
+
+--------------------------------------------------------------------------------
+2. NOT AFFILIATED WITH TEXAS INSTRUMENTS
+--------------------------------------------------------------------------------
+
+BA II Plus and BA II Plus Professional are trademarks of Texas Instruments
+Incorporated. This project is not produced by, endorsed by, sponsored by or
+affiliated with Texas Instruments. It is an independent web emulation, and so is
+the site it was packaged from.
+
+--------------------------------------------------------------------------------
+3. NOT FINANCIAL ADVICE — VERIFY YOUR RESULTS
+--------------------------------------------------------------------------------
+
+This is a study and reference tool. Financial calculations carry consequences:
+an exam answer, a valuation, a loan decision.
+
+The calculator's behaviour was verified against the source site, not against a
+physical BA II Plus, and the two are known to differ in the ways documented in
+the README. Its arithmetic is ordinary floating-point arithmetic and is not
+suitable for exact decimal work.
+
+Nothing produced by this software is financial, investment, accounting, tax or
+legal advice. Check anything you intend to rely on against a device or a source
+you trust. You are responsible for the results you use.
+
+--------------------------------------------------------------------------------
+4. NO WARRANTY, AND NO LIABILITY
+--------------------------------------------------------------------------------
+
+The software is provided "as is", without warranty of any kind. The authors and
+copyright holders are not liable for any claim, damage or other liability
+arising from the software or its use, whether in contract, tort or otherwise.
+
+This includes, without limitation: wrong or unexpected calculation results;
+anything you relied on and should not have; loss of data; and any consequence of
+the software being unavailable, inaccurate or unsuitable for a purpose you had in
+mind.
+
+To the fullest extent permitted by law, use of this software is at your own risk.
+
+--------------------------------------------------------------------------------
+5. WHAT YOU MAY DO
+--------------------------------------------------------------------------------
+
+The MIT licence above is deliberately permissive. For the work it covers you may
+use, copy, modify, merge, publish, distribute, sublicense and sell it, including
+commercially, provided the copyright notice and the licence text are kept.
+
+For the upstream calculator files, that permission is not mine to give. If you
+intend to republish or use them commercially, ask the upstream site first — this
+repository is an offline packaging for personal use, not a grant of rights.
