@@ -352,7 +352,7 @@ Results at the time of writing:
 |---|---|
 | Widget markup, live vs offline | identical (10,282 chars normalised, dock unwrapped) |
 | Behaviour — 24 key sequences, 106 display states | identical |
-| `CE|C` (deliberately different) | one press clears the entry, two clears everything |
+| `CE\|C` (deliberately different) | one press clears the entry, two clears everything |
 | Network requests while running all sequences | zero |
 | Fonts embedded and applied | both families, metrics match live exactly |
 | Widget size and X position (3 viewports) | matches live, ≤0.5px |
@@ -744,7 +744,7 @@ python tools/check_readme_links.py   # 本文档自身的跳转链接（纯本�
 |---|---|
 | 计算器 DOM 结构，线上 vs 离线 | 完全一致（规范化后 10,282 字符，比对前先拆掉 dock 容器） |
 | 行为 —— 24 组按键序列、106 个显示状态 | 完全一致 |
-| `CE|C`（有意不同） | 按一次清除输入，连按两次全部清除 |
+| `CE\|C`（有意不同） | 按一次清除输入，连按两次全部清除 |
 | 跑完所有序列期间发起的网络请求 | 0 次 |
 | 字体是否内嵌并生效 | 两套字体均生效，度量与线上完全一致 |
 | 计算器尺寸与 X 坐标（3 种视口） | 与线上一致，误差 ≤0.5px |
