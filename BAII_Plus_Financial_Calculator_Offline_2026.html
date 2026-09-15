@@ -4240,108 +4240,145 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 <script data-source="sto_rcl_behavior.js">
 /* ─────────────────────────────────────────────────────────────────────────
-   sto_rcl_behavior.js  --  STO and RCL on the keypad, as on the real device
+   sto_rcl_behavior.js  --  STO and RCL, from the keypad and from the panel
    ─────────────────────────────────────────────────────────────────────────
-   Upstream, the STO and RCL keys open a panel of register buttons and that is the
-   only way to reach a register. The real BA II Plus has no such panel: you press
-   STO or RCL and then a digit key, which means a recall can be made in the middle
-   of a calculation rather than only at the start of one.
+   Upstream, STO and RCL open a panel of register buttons and that panel is the
+   only route to a register. That has two consequences: you cannot press STO then
+   a digit as the real device works, and a recall can only ever begin a
+   calculation -- `23 + RCL 1 =` is impossible, because the panel replaces the
+   whole expression.
 
-       1234  STO  1        stores the displayed value in register 1
-       RCL   1             brings it back as the current entry
-       23 + RCL 1 =        ...including mid-expression, the case upstream cannot do
+   This file adds the device's own gestures while KEEPING the panel:
 
-   This file implements that. The register panel is left in the markup but is no
-   longer opened by these keys, so the widget's structure is untouched and the
-   parity check against the live site still holds.
+       1234 STO 1        stores 1234 in register 1     (digit, or click the panel)
+       RCL 1             brings it back as the entry   (digit, or click the panel)
+       23 + RCL 1 =      recalls into a running calculation
+       RCL I/Y           recalls a TVM variable rather than overwriting it
 
-   How it works: script.js declares its state with top-level let/const, which in
-   classic scripts share the global lexical scope, so `MEM`, `expression`,
-   `currentNum()` and the display helpers are all reachable from here. The keys
-   are hooked in the capture phase on #keypad, ahead of the engine's own
-   bubble-phase listener, and the press is suppressed only when this file has
-   handled it.
+   The panel still opens on STO / RCL and still works by clicking a register.
+   Both routes go through the same store/recall here, so they cannot drift apart.
 
-   Two things worth knowing if you change this:
+   Three behaviours worth knowing, all matching the device:
 
-   - `pendingOp` in script.js looks like it tracks this state and does not. It is
-     assigned by openRegOverlay() and read nowhere; the panel's buttons use a
-     closure instead. This file keeps its own `pending` rather than relying on it.
+   - STO and RCL are COMPLETED operations. Whatever is typed next starts a fresh
+     entry, so `82 STO 2` then `2` `3` shows 23 rather than 8223.
+   - RCL replaces the entry being typed and keeps what came before it, so with 100
+     in a register, `23+5` recalled becomes `23+100`.
+   - A negative value is bracketed, `23+(-100)`, because the chain evaluator would
+     otherwise read `23+-100` as a subtraction of a negative literal.
 
-   - Status text is set AFTER updateDisplay(), never before. In standard mode
-     updateDisplay() ends with setStatus(indicators, "BA II PLUS"), so anything
-     written earlier is immediately overwritten -- the same trap that made the
-     engine's own "Cleared" message invisible.
+   How it reaches the engine: script.js declares its state with top-level
+   let/const, which in classic scripts share the global lexical scope, so `MEM`,
+   `expression`, `currentNum()`, `tvmVal()`, `openRegOverlay()` and the display
+   helpers are all reachable from here. Keys are hooked in the capture phase,
+   ahead of the engine's own bubble-phase listeners, and a press is suppressed
+   only when this file has handled it.
+
+   Note for anyone tempted to use it: `pendingOp` in script.js looks like it
+   tracks this state and does not. It is assigned by openRegOverlay() and read
+   nowhere. This file keeps its own `pending`, and mirrors it into `pendingOp`
+   only so the engine's own cancel handler stays consistent.
    ───────────────────────────────────────────────────────────────────────── */
 
 (() => {
   "use strict";
 
   const keypad = document.getElementById("keypad");
+  const overlay = document.getElementById("registerOverlay");
   const DIGIT = /^[0-9]$/;
+  const OPERATOR = /^[+\-*/]$/;
 
   /* "sto" or "rcl" while a register is being chosen, null otherwise. */
   let pending = null;
 
-  /* Re-render, then label the status bar. Order matters -- see the note above. */
-  const setPendingStatus = (label, right) => {
+  /* True after a completed STO or RCL: the next digit starts a new entry rather
+     than extending the value that is on screen. */
+  let fresh = false;
+
+  /* Re-render, then label the status bar. Order matters -- updateDisplay() ends
+     with setStatus(indicators, "BA II PLUS"), so anything written first is lost. */
+  const setStatusText = (left, right) => {
     updateDisplay();
-    setStatus(label, right);
+    setStatus(left, right);
+  };
+
+  const closePanel = () => {
+    overlay.hidden = true;
+    pendingOp = null;   // keep the engine's flag in step with ours
   };
 
   const arm = (mode) => {
     pending = mode;
-    setPendingStatus(mode === "sto" ? "STO" : "RCL", "BA II PLUS");
+    openRegOverlay(mode);            // the engine builds the grid and shows it
+    setStatusText(mode === "sto" ? "STO" : "RCL", "BA II PLUS");
   };
 
+  /* Abandon a pending STO/RCL. The caller decides whether the key that caused it
+     should still do its own job. */
   const disarm = () => {
     if (!pending) return;
     pending = null;
+    closePanel();
     updateDisplay();
   };
 
-  /* STO n -- keep the value the display is showing, exactly as currentNum()
-     resolves it (an evaluated expression, not the raw text). */
+  /* Drop the entry being typed, keeping everything before it -- the last
+     operator included. Returns the prefix, which is "" when nothing precedes
+     the entry. */
+  const dropEntry = () => {
+    let k = expression.length;
+    while (k > 0 && /[\d.]/.test(expression[k - 1])) k--;
+    return expression.slice(0, k);
+  };
+
+  /* STO n -- keep the value the display resolves to, exactly as currentNum()
+     reads it (an evaluated expression, not the raw text). */
   const store = (i) => {
     const value = currentNum();
     MEM[i] = Number.isFinite(value) ? value : 0;
     pending = null;
+    closePanel();
+    expression = String(MEM[i]);
+    setScreen(fmt(MEM[i]));
     setExpr("Stored to register " + i);
-    setPendingStatus("", "STO " + i + " ✓");
+    setStatusText("", "STO " + i + " ✓");
+    fresh = true;
   };
 
-  /* RCL n -- bring the register back as the current ENTRY, so it can sit in the
-     middle of a running calculation. That means dropping whatever entry is being
-     typed and appending the recalled number to what came before it:
-        "23+"   -> "23+100"
-        "23+5"  -> "23+100"     (the part-typed 5 is replaced, as on the device)
-        "0"     -> "100"        (nothing pending, so it is just the entry)
-     A negative value is wrapped in brackets, which both evaluators accept; the
-     chain evaluator would otherwise read "23+-100" as a subtraction of a
-     negative literal and the AOS evaluator would need it anyway. */
-  const recall = (i) => {
-    const value = MEM[i];
-    let k = expression.length;
-    while (k > 0 && /[\d.]/.test(expression[k - 1])) k--;
-    const head = expression.slice(0, k);
-
+  /* RCL <value> -- bring it back as the current ENTRY so it can sit in the middle
+     of a running calculation. */
+  const recallValue = (value, label) => {
+    const head = dropEntry();
     const literal = head !== "" && value < 0 ? "(" + value + ")" : String(value);
-    expression = head + literal;
-    if (expression === "") expression = "0";
-
+    expression = head + literal || "0";
     pending = null;
-    setScreen(expression);
-    setExpr("Recalled register " + i);
-    setPendingStatus("", "RCL " + i);
+    closePanel();
+    /* A standalone recall is a finished value, so it renders formatted and the
+       next digit starts fresh. Recalling into a part-built expression is not:
+       the entry is live and typing extends it, as typing always does. */
+    setScreen(head === "" ? fmt(value) : expression);
+    setExpr("Recalled " + label);
+    setStatusText("", "RCL " + label);
+    fresh = head === "";
   };
 
-  /* True when this press belongs to a pending STO/RCL and has been handled. */
-  const complete = (digit) => {
-    if (pending === "sto") store(digit);
-    else recall(digit);
-    return true;
+  const recallRegister = (i) => recallValue(MEM[i], "register " + i);
+
+  /* The TVM variable a key refers to, or null for any other key. The FV key
+     carries data-action="clrTVM" and only clears when 2ND is held. */
+  const tvmIdOf = (btn) => {
+    if (btn.dataset.action === "tvm") return btn.dataset.target;   // n iy pv pmt
+    if (btn.dataset.action === "clrTVM") return "fv";
+    return null;
   };
 
+  /* A digit completes whichever of STO / RCL is waiting. */
+  const completeWithDigit = (d) => {
+    if (pending === "sto") store(d);
+    else recallRegister(d);
+  };
+
+  /* ── the keypad ─────────────────────────────────────────────────────── */
   keypad.addEventListener(
     "click",
     (e) => {
@@ -4350,29 +4387,49 @@ document.addEventListener("DOMContentLoaded", () => {
       const { action, value: val } = btn.dataset;
 
       if (pending) {
-        // A digit completes whichever of STO / RCL is waiting.
         if (val !== undefined && DIGIT.test(val)) {
           e.stopPropagation();
           e.preventDefault();
-          complete(Number(val));
+          completeWithDigit(Number(val));
           return;
         }
-        // Pressing STO or RCL again abandons it rather than stacking a second one.
+        /* RCL + a TVM key recalls that variable. Left to the engine it would
+           STORE the display into it, wiping the value the user asked for. */
+        if (pending === "rcl") {
+          const id = tvmIdOf(btn);
+          if (id) {
+            e.stopPropagation();
+            e.preventDefault();
+            recallValue(tvmVal(id), id.toUpperCase());
+            return;
+          }
+        }
         if (action === "sto" || action === "rcl") {
           e.stopPropagation();
           e.preventDefault();
           disarm();
-          updateDisplay();
-          setStatus("", "BA II PLUS");
+          setStatusText("", "BA II PLUS");
           return;
         }
-        // Anything else cancels, and then does its own job as normal.
+        /* Anything else cancels, and then does its own job as normal -- which is
+           what makes STO + a TVM key store into that variable, as on the device. */
         disarm();
         return;
       }
 
-      // Only the standard calculator has registers to work with; inside a
-      // worksheet these keys mean nothing and the engine keeps its behaviour.
+      /* Type-over: after a completed STO or RCL the next entry starts fresh.
+         Runs before the engine appends, which is why this is the capture phase. */
+      if (fresh) {
+        if (val !== undefined && (DIGIT.test(val) || OPERATOR.test(val))) {
+          expression = dropEntry() || "0";
+          fresh = false;
+        } else if (val === undefined) {
+          fresh = false;
+        }
+      }
+
+      /* Only the standard calculator has registers to work with; inside a
+         worksheet these keys mean nothing and the engine keeps its behaviour. */
       if (currentMode !== "standard") return;
       if (action !== "sto" && action !== "rcl") return;
 
@@ -4384,31 +4441,61 @@ document.addEventListener("DOMContentLoaded", () => {
     true
   );
 
-  /* The keyboard route, so digits typed on a physical keyboard complete the same
-     gesture. Without this the on-screen key would wait for a click while the
-     digit arrived as normal input, which reads as the key not working. */
+  /* ── the register panel ─────────────────────────────────────────────── */
+  /* It lives outside #keypad, so it needs its own listener. Both routes go
+     through store()/recallRegister() so the panel and the keypad cannot diverge. */
+  overlay.addEventListener(
+    "click",
+    (e) => {
+      const regBtn = e.target.closest(".reg-btn");
+      if (regBtn && pending) {
+        const num = regBtn.querySelector(".reg-btn-num");
+        const i = num ? parseInt(num.textContent, 10) : NaN;
+        if (Number.isInteger(i)) {
+          e.stopPropagation();
+          e.preventDefault();
+          completeWithDigit(i);
+          return;
+        }
+      }
+      if (e.target.closest("#regCancel")) {
+        pending = null;
+        setStatusText("", "BA II PLUS");   // the engine hides the panel itself
+      }
+    },
+    true
+  );
+
+  /* ── the keyboard ───────────────────────────────────────────────────── */
   window.addEventListener(
     "keydown",
     (e) => {
       if (e.target.tagName === "INPUT") return;
-      if (!pending) return;
+
+      if (!pending) {
+        if (fresh && (DIGIT.test(e.key) || OPERATOR.test(e.key))) {
+          expression = dropEntry() || "0";
+          fresh = false;
+        } else if (fresh && !DIGIT.test(e.key) && !OPERATOR.test(e.key)) {
+          fresh = false;
+        }
+        return;
+      }
 
       if (DIGIT.test(e.key)) {
         e.stopPropagation();
         e.preventDefault();
-        complete(Number(e.key));
+        completeWithDigit(Number(e.key));
         return;
       }
       if (e.key === "Escape") {
         e.stopPropagation();
         e.preventDefault();
         disarm();
-        updateDisplay();
-        setStatus("", "BA II PLUS");
+        setStatusText("", "BA II PLUS");
         return;
       }
-      // Any other key cancels and then behaves normally.
-      disarm();
+      disarm();   // any other key cancels and then behaves normally
     },
     true
   );

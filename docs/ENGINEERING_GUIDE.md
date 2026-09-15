@@ -164,11 +164,10 @@ It was introduced because **the panels did not reliably hide each other**: `open
 `openCF()` each hide the other two, but `openRegOverlay()` hid nothing, so pressing `N` then `STO`
 genuinely left two panels open and, once positioned, they overlapped.
 
-That trigger is gone — §5.5 made STO/RCL keypad-driven, so the register overlay is no longer
-reachable and only TVM and CF remain, which do hide each other. The dock stays: it is what the
-placement CSS positions, and it still guarantees two visible panels would stack rather than
-collide. `verify_panel_layout.py` forces both visible so that guarantee stays tested rather than
-becoming an untested comment.
+`openRegOverlay()` still hides nothing, so that case is live: pressing `N` and then `STO` leaves
+the TVM worksheet and the register overlay open together. The dock gives them a shared flex column
+so they stack in DOM order, exactly as upstream does, and `verify_panel_layout.py` drives that
+sequence rather than forcing it.
 
 `wrap_panels()` asserts the wrapped run contains all three panels and neither the display nor
 the keypad, so an upstream reshuffle fails the build instead of silently wrapping the wrong
@@ -221,20 +220,30 @@ Upstream, `STO` and `RCL` open a panel of register buttons and that panel is the
 register, so a recall can only ever begin a calculation. The device has no such panel: you press
 `STO` or `RCL` and then a digit, which is what makes `23 + RCL 1 =` possible.
 
-The patch suppresses the engine's `sto`/`rcl` handlers in the capture phase, keeps its own
-`pending` state, and completes the gesture on the next digit. `RCL` replaces the entry being typed
-and keeps the prefix, so with 100 in the register `23+5` recalled becomes `23+100`. A negative
-value is bracketed — `23+(-100)` — because the chain evaluator would otherwise read `23+-100` as a
-subtraction of a negative literal.
+The panel is kept. `STO` and `RCL` still open it and clicking a register still works; the keypad
+gesture is added alongside. Both routes call the same `store()` / `recallRegister()` here, so they
+cannot drift apart — that is the reason the panel's buttons are intercepted rather than left to
+the engine, which would `expression = String(MEM[i])` and lose the running calculation.
+
+The patch suppresses the engine's `sto`/`rcl` handlers in the capture phase and keeps its own
+`pending` state. Three behaviours worth knowing, all matching the device:
+
+- `STO` and `RCL` are **completed operations**: the next digit starts a fresh entry, so
+  `82 STO 2` then `2` `3` shows 23 rather than 8223. `verify_sto_rcl.py` checks this.
+- `RCL` replaces the entry being typed and keeps the prefix, so with 100 in the register `23+5`
+  recalled becomes `23+100`. A negative value is bracketed — `23+(-100)` — because the chain
+  evaluator would otherwise read `23+-100` as a subtraction of a negative literal.
+- `RCL` followed by a TVM key recalls that variable. Left to the engine it would **store** the
+  display into the variable instead, wiping it — which is what it did before this file handled it.
 
 Two things to know if you touch this:
 
 - **`pendingOp` in script.js looks like it tracks this and does not.** It is assigned by
   `openRegOverlay()` and read nowhere; the panel's buttons use a closure. This file keeps its own
-  state rather than relying on it.
-- **The register overlay is now unreachable.** It is still in the markup — so the parity check
-  against the live site still holds — but nothing opens it. `verify_panel_layout.py` forces it
-  visible with JS when it needs to prove the dock still stacks two panels.
+  state and mirrors it into `pendingOp` only so the engine's cancel handler stays consistent.
+- **The register overlay is reachable again, and `openRegOverlay()` hides nothing.** So `N` then
+  `STO` really does leave the TVM worksheet and the register overlay open together, which is the
+  case `.panel-dock` exists to stack. `verify_panel_layout.py` drives exactly that sequence.
 
 One deliberate difference from the device: `STO` stores the *evaluated display*, via the engine's
 own `currentNum()`, not the partly-typed entry. With `23+4` on screen it stores 27. The engine
@@ -256,7 +265,7 @@ falls back without changing a single character of text).
 | `verify_panel_layout.py` | Panels outside the device, stacked not overlapping, device pinned, live resize | no |
 | `verify_ce_c.py` | The two-stage CE|C, and that worksheets and `CLR WORK` are untouched | no |
 | `verify_panel_focus.py` | No panel steals focus or scrolls the page on open; tapping a field still focuses it | no |
-| `verify_sto_rcl.py` | STO/RCL from the keypad: ten registers, mid-expression recall, cancel paths, Chn and AOS | no |
+| `verify_sto_rcl.py` | STO/RCL from both the keypad and the panel: ten registers, mid-expression and TVM recall, fresh entry after a store, cancel paths, Chn and AOS | no |
 | `verify_compatibility.py` | Portable paths; works on Chromium/Firefox/WebKit and 5 mobile devices; runs after relocation | no |
 | `check_readme_links.py` | Every in-document link in the README resolves | no |
 
@@ -548,10 +557,9 @@ cmp upstream_raw/script.js build/script.js && echo "逐字节一致"
 但 `openRegOverlay()` 什么都不关，所以先按 `N` 再按 `STO` 确实会同时打开两个面板，而改成定位后
 它们就会重叠。
 
-这个触发条件现在已经不存在了 —— §5.5 把 STO/RCL 改成键盘驱动后，寄存器面板已无法打开，只剩下
-TVM 与 CF，而这两者是互斥的。容器保留下来：定位 CSS 作用在它身上，而且它依然保证"两个面板同时
-可见时会堆叠而不是重叠"。`verify_panel_layout.py` 会强制两者可见，让这个保证保持被测试的状态，
-而不是沦为一句无人验证的说明。
+`openRegOverlay()` 依然什么都不关，所以这个场景是真实存在的：先按 `N` 再按 `STO`，TVM 工作表与
+寄存器面板会同时打开。容器给它们一列共用的 flex 空间，让其按 DOM 顺序堆叠，与线上表现一致；
+`verify_panel_layout.py` 驱动的就是这条真实路径，而不是强制构造。
 
 `wrap_panels()` 会断言被包裹的区间包含三个面板且不含显示区与键盘，因此上游若改动结构，
 构建会直接失败，而不是悄悄包错东西。
@@ -595,17 +603,27 @@ STO/RCL 寄存器面板没有输入框，本来就不受影响。
 开头开始。真机没有这个面板：按 `STO` 或 `RCL`，再按一个数字键 —— 这正是 `23 + RCL 1 =` 得以
 成立的原因。
 
-补丁在捕获阶段拦下引擎的 `sto`/`rcl` 处理，自己维护 `pending` 状态，并在下一个数字键上完成整个
-动作。`RCL` 会替换正在输入的那一项并保留前缀，所以当寄存器里是 100 时，`23+5` 会变成 `23+100`。
-负值会加括号 —— `23+(-100)` —— 否则链式求值器会把 `23+-100` 读成"减去一个负字面量"。
+面板被保留了下来。`STO`/`RCL` 依然会弹出它，点击寄存器依然有效；键盘操作是在此之外新增的。
+两条路径都调用本文件里的 `store()` / `recallRegister()`，因此不会各自漂移 —— 这也是拦截面板按钮、
+而不是交给引擎处理的原因：引擎会执行 `expression = String(MEM[i])`，把正在进行的运算丢掉。
+
+补丁在捕获阶段拦下引擎的 `sto`/`rcl` 处理，自己维护 `pending` 状态。三点与真机一致的行为：
+
+- `STO` 和 `RCL` 都是**已完成的运算**：接下来输入的数字会重新开始一项，所以 `82 STO 2` 之后按
+  `2` `3` 得到 23 而不是 8223。`verify_sto_rcl.py` 会检查这一点。
+- `RCL` 会替换正在输入的那一项并保留前缀，所以当寄存器里是 100 时，`23+5` 会变成 `23+100`。
+  负值会加括号 —— `23+(-100)` —— 否则链式求值器会把 `23+-100` 读成"减去一个负字面量"。
+- `RCL` 后接 TVM 键会调出该变量。若交给引擎处理，它会反过来把屏幕值**存进**该变量，把值抹掉 ——
+  这正是本文件接手之前的行为。
 
 改动这里需要知道两件事：
 
 - **script.js 里的 `pendingOp` 看起来是管这件事的，其实不是。** 它由 `openRegOverlay()` 赋值，
-  却没有任何地方读取；面板按钮用的是闭包变量。本文件维护自己的状态，不依赖它。
-- **寄存器面板现在已无法打开。** 它仍保留在标记里 —— 因此与线上站点的结构比对依然成立 —— 但
-  没有任何东西会打开它。`verify_panel_layout.py` 在需要验证容器仍能堆叠两个面板时，用 JS 强制
-  显示它。
+  却没有任何地方读取；面板按钮用的是闭包变量。本文件维护自己的状态，只把它镜像进 `pendingOp`，
+  以便引擎自己的取消处理保持一致。
+- **寄存器面板现在又能打开了，而 `openRegOverlay()` 什么都不关。** 所以先按 `N` 再按 `STO` 确实
+  会同时打开 TVM 工作表和寄存器面板 —— 这正是 `.panel-dock` 存在的意义。`verify_panel_layout.py`
+  驱动的就是这条真实路径。
 
 一处与真机有意的差异：`STO` 存的是**屏幕显示值的求值结果**（经由引擎自身的 `currentNum()`），
 而不是正在输入的那一项。屏幕上显示 `23+4` 时会存 27。本引擎显示整个表达式，而真机只显示那个 `4`；
@@ -625,7 +643,7 @@ STO/RCL 寄存器面板没有输入框，本来就不受影响。
 | `verify_panel_layout.py` | 面板在计算器外部、堆叠不重叠、计算器不动、缩放实时切换 | 否 |
 | `verify_ce_c.py` | 两段式 CE|C，且工作表与 `CLR WORK` 未受影响 | 否 |
 | `verify_panel_focus.py` | 打开面板不抢焦点、不滚动页面；点按字段仍能聚焦 | 否 |
-| `verify_sto_rcl.py` | STO/RCL 键盘操作：十个寄存器、中途调用、取消路径、Chn 与 AOS | 否 |
+| `verify_sto_rcl.py` | STO/RCL 键盘与面板两种操作：十个寄存器、中途调用与 TVM 调用、存储后重新开始输入、取消路径、Chn 与 AOS | 否 |
 | `verify_compatibility.py` | 路径可移植；Chromium/Firefox/WebKit 与 5 种移动端可用；换位置后仍正常 | 否 |
 | `check_readme_links.py` | README 中每个文档内链接都能跳转 | 否 |
 

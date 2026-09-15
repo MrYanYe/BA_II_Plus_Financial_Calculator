@@ -10,13 +10,11 @@ Six checks:
 
   1. placed     Wide landscape: the dock is entirely to the left of the device
                 and top-aligned with it. Narrow or portrait: the dock is entirely
-                below the device. (STO/RCL no longer open the register overlay --
-                they are keypad-driven offline -- so only TVM and CF are checked
-                here; verify_sto_rcl.py covers the register keys.)
+                below the device.
   2. still      Opening each panel leaves the device's bounding box unchanged.
-  3. stacked    Two visible panels stack rather than overlap. Forced directly:
-                the UI can no longer produce it, since STO/RCL stopped opening the
-                register overlay, but the dock exists to guarantee it.
+  3. stacked    Pressing N then STO leaves the TVM worksheet and the register
+                overlay open at once -- openRegOverlay() hides nothing. Both must
+                be visible and their boxes must not intersect.
   4. reachable  Whenever a panel is off the bottom of the viewport, the document
                 must actually scroll far enough to bring it into view.
   5. adjacent   A stacked panel sits right under the keypad, not under the
@@ -45,11 +43,10 @@ DEFAULT = ROOT / "BAII_Plus_Financial_Calculator_Offline_2026.html"
 #     python tools/verify_panel_layout.py path/to/artifact.html
 LOCAL = DEFAULT
 
-# STO/RCL no longer open the register overlay -- they are keypad-driven offline,
-# so that panel is unreachable by design. See verify_sto_rcl.py.
 PANELS = [
     ("tvm", "tvmPanel"),
     ("cf", "cfPanel"),
+    ("sto", "registerOverlay"),
 ]
 
 # How far a stacked panel may sit below the keypad. The device's own bottom
@@ -175,7 +172,7 @@ def main() -> int:
         calc = rect(page, "#calculator")
 
         if tvm is None or reg is None:
-            failures.append("could not get two panels visible")
+            failures.append("N then STO did not leave both panels open")
             print(f"  FAIL  tvm={'open' if tvm else 'hidden'}, "
                   f"register={'open' if reg else 'hidden'}")
         elif overlaps(tvm, reg):
