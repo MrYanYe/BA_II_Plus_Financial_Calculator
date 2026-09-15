@@ -250,6 +250,9 @@ BAII_Plus_Financial_Calculator_Offline_2026.html   the deliverable — one self-
 │
 ├── upstream_raw/               pristine mirror of what the live site serves
 │
+├── LICENSE                     MIT, plus what it does not cover — worth reading
+├── AI_Prompts.txt              the request log this project was built from
+│
 └── docs/
     ├── ENGINEERING_GUIDE.md    how it works and what will bite you (EN, ZH)
     ├── images/                 4 real screenshots, used by both languages
@@ -349,6 +352,24 @@ Screenshots land in `.verify_shots/` (gitignored) and are worth opening when a c
 
 ---
 
+## Licence
+
+[MIT](LICENSE) — use it, modify it, ship it, sell it; keep the copyright notice.
+
+It covers the work added here: the build pipeline, the offline overrides, the behaviour patches and
+these documents. It does **not** cover the calculator itself. `styles.css` and `script.js` are the
+upstream site's files, redistributed unmodified, and copyright in them belongs to that site's
+author — this repository is an offline packaging, not a reimplementation, and cannot grant rights
+that author has not granted. If you intend to republish those files or use them commercially, ask
+them first.
+
+The same file also records, plainly: no warranty of any kind; no liability for any claim or damage
+arising from use; not financial, investment, accounting or tax advice; and no affiliation with
+Texas Instruments. Worth reading before you rely on a number this produces — check it against a
+device or a source you trust.
+
+---
+
 ## Notes
 
 **Source.** Content and code originate from
@@ -358,7 +379,8 @@ ledger behaviour belongs to that site; this repository is an offline packaging o
 calculator, not a reimplementation.
 
 **For personal offline use.** The site's calculator logic and styling are its author's work. If
-you intend to republish or use this commercially, ask them first.
+you intend to republish or use this commercially, ask them first — see [LICENSE](LICENSE) for what
+that licence does and does not cover.
 
 **Not affiliated with Texas Instruments.** BA II Plus is TI's trademark; this is an
 independent web emulation of it, and so is the upstream site.
@@ -592,6 +614,9 @@ BAII_Plus_Financial_Calculator_Offline_2026.html   成品 —— 单个自包含
 │
 ├── upstream_raw/               线上资源的原始镜像
 │
+├── LICENSE                     MIT，以及它不覆盖什么 —— 值得一读
+├── AI_Prompts.txt              本项目诞生过程的请求记录
+│
 └── docs/
     ├── ENGINEERING_GUIDE.md    工程介绍与工作流（英文、中文）
     ├── images/                 4 张实机截图，中英文共用同一组
@@ -686,12 +711,27 @@ python tools/check_readme_links.py   # 本文档自身的跳转链接（纯本�
 
 ---
 
+## 许可
+
+[MIT](LICENSE) —— 随便用、随便改、随便分发、随便商用，保留版权声明即可。
+
+它覆盖的是本项目新增的部分：构建流水线、离线覆盖样式、行为补丁以及这些文档。它**不**覆盖计算器
+本身。`styles.css` 与 `script.js` 是上游站点的文件，原样转载，版权归该站作者所有 —— 本仓库是离线
+打包，不是重新实现，也无权授予原作者未授予的权利。如需转载这些文件或商用，请先取得对方许可。
+
+同一个文件里还如实写明：不提供任何担保；对因使用产生的任何索赔或损害不承担责任；不构成财务、
+投资、会计或税务建议；与德州仪器无关联。在依赖本程序算出的数字之前值得一读 —— 请与可信的设备或
+来源核对。
+
+---
+
 ## 说明
 
 **来源。** 内容与代码来自 [baiiplusfinancialcalculator.com](https://baiiplusfinancialcalculator.com/)，
 该站免费提供此计算器并以广告变现。计算器的设计、逻辑与运算行为的全部功劳归该站点所有；
 本仓库只是对其计算器的离线打包，不是重新实现。
 
-**供个人离线使用。** 站点的计算逻辑与样式属于原作者。如需转载或商用，请先取得对方许可。
+**供个人离线使用。** 站点的计算逻辑与样式属于原作者。如需转载或商用，请先取得对方许可 ——
+具体许可覆盖与不覆盖哪些内容，见 [LICENSE](LICENSE)。
 
 **与德州仪器无关。** BA II Plus 是 TI 的商标；本站点是它的第三方网页模拟实现，上游站点同样如此。
