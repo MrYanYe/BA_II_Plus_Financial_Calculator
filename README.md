@@ -25,10 +25,11 @@ it covers the pipeline, where each kind of change belongs, and the traps that ar
 ## Quick start
 
 Download `BAII_Plus_Financial_Calculator_Offline_2026.html` and open it. That is the whole
-procedure.
+procedure. It works from a USB stick, an email attachment, a phone's Downloads folder, or a path
+with spaces and non-ASCII characters — the file references nothing outside itself.
 
-**Or try it without downloading:** <https://mryanye.github.io/BA_II_Plus_Financial_Calculator/> It works from a USB stick, an email attachment, a phone's Downloads folder, or a
-path with spaces and non-ASCII characters — the file references nothing outside itself.
+**Or try it in your browser, without downloading anything:**
+<https://mryanye.github.io/BA_II_Plus_Financial_Calculator/>
 
 Verified — not assumed — by [`tools/verify_compatibility.py`](tools/verify_compatibility.py):
 identical behaviour on **Chromium, Firefox and WebKit** (the engines behind Chrome/Edge, Firefox
@@ -63,6 +64,37 @@ Kept:
 Dropped: navbar, carousel, all marketing sections, footer, every ad and analytics tag.
 
 ---
+
+## What this improves on the website
+
+The calculator is the website's work. What differs is everything around it, plus three things
+inside it where the website departs from the physical device and this does not.
+
+**Around it**
+
+| | The website | This |
+|---|---|---|
+| Third-party requests | six hosts — ads, two analytics services, fonts, avatars | none |
+| Tracking | AdSense, Tag Manager, Clarity | none |
+| Offline | no | yes — there is nothing to fetch |
+| What you carry | a bookmark | one 215 KB file |
+| Page chrome | navbar, a carousel of other calculators, five marketing sections, a footer | the calculator |
+| On a phone | the calculator starts below the navbar | it fills the screen |
+| Worksheets | expand *inside* the device and push the keypad off-screen | open beside or below it; the device never moves |
+
+**Inside it — three places the website disagrees with the physical device**
+
+- **`STO` / `RCL` from the keypad** — press the key, then a digit. The website offers only a panel,
+  so a recall can never happen *inside* a calculation; `23 + RCL 1 =` works here and not there. The
+  panel is still available, and `RCL I/Y` recalls the variable instead of overwriting it.
+- **`CE|C` is two-stage** — one press clears the entry and keeps the pending operation, two presses
+  clear everything. The website always clears everything.
+- **A finished calculation ends the entry** — after `1 + 2 =`, pressing `4` starts a new number.
+  The website gives 34.
+
+**And the claims are checkable.** The repository ships the harnesses that measured all of the above
+— against the live site, on three browser engines and five emulated phones — so you can re-run them
+rather than take this list on trust.
 
 ## Fidelity — what matches, and the six things that do not
 
@@ -413,10 +445,11 @@ independent web emulation of it, and so is the upstream site.
 
 ## 快速开始
 
-下载 `BAII_Plus_Financial_Calculator_Offline_2026.html` 直接打开，就这么简单。
-
-**不想下载的话，可以直接在线试用：** <https://mryanye.github.io/BA_II_Plus_Financial_Calculator/>放在U盘里、作为邮件附件、
+下载 `BAII_Plus_Financial_Calculator_Offline_2026.html` 直接打开，就这么简单。放在U盘里、作为邮件附件、
 丢进手机下载目录、放在带空格或中文的路径下都能用 —— 这个文件不引用自身之外的任何东西。
+
+**不想下载的话，可以直接在线试用：**
+<https://mryanye.github.io/BA_II_Plus_Financial_Calculator/>
 
 由 [`tools/verify_compatibility.py`](tools/verify_compatibility.py) 实测得出，不是口头保证：
 在 **Chromium、Firefox、WebKit**（即 Chrome/Edge、Firefox、Safari 的内核）上行为完全一致，
@@ -449,6 +482,34 @@ independent web emulation of it, and so is the upstream site.
 已去除：导航栏、轮播、全部营销板块、页脚、所有广告与统计脚本。
 
 ---
+
+## 相比原网页的改进
+
+计算器本身是原网页的作品。不同的地方在于它周围的一切，以及内部三处原网页与真机不一致、
+而本版本与真机一致的细节。
+
+**周围的差别**
+
+| | 原网页 | 本版本 |
+|---|---|---|
+| 第三方请求 | 六个域名 —— 广告、两套统计、字体、头像 | 零 |
+| 追踪 | AdSense、Tag Manager、Clarity | 无 |
+| 离线 | 不行 | 可以 —— 没有任何需要请求的东西 |
+| 你带走的东西 | 一个浏览器书签 | 一个 215 KB 的文件 |
+| 页面外壳 | 导航栏、其他计算器轮播、五个营销板块、页脚 | 只有计算器 |
+| 手机上 | 计算器从导航栏下方才开始 | 满屏 |
+| 工作表 | 在计算器**内部**展开，把键盘挤出屏幕 | 在左侧或下方展开；计算器本身不动 |
+
+**内部 —— 三处原网页与真机不一致的地方**
+
+- **`STO` / `RCL` 支持键盘操作** —— 按键后再按数字键。原网页只提供面板，因此调用**无法发生在
+  一次计算的中途**；`23 + RCL 1 =` 在这里可行，在那里不行。面板依然保留，且 `RCL I/Y` 是调出
+  该变量而不是把它覆盖掉。
+- **`CE|C` 为两段式** —— 按一次清除当前输入并保留未完成的运算，按两次全部清除。原网页永远是全清。
+- **一次计算结束后，当前输入也随之结束** —— `1 + 2 =` 之后按 `4` 是开始一个新数。原网页会得到 34。
+
+**而且这些说法都是可复核的。** 仓库里附带了测出以上全部结论的验证脚本 —— 与线上站点对比、
+覆盖三种浏览器内核与五种模拟手机 —— 你可以自己重跑，而不必相信这份清单。
 
 ## 还原度 —— 哪些一致，以及仅有的六处不一致
 
