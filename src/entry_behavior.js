@@ -1,30 +1,32 @@
 /* ─────────────────────────────────────────────────────────────────────────
-   sto_rcl_behavior.js  --  STO and RCL, from the keypad and from the panel
+   entry_behavior.js  --  a completed operation ends the entry
    ─────────────────────────────────────────────────────────────────────────
-   Upstream, STO and RCL open a panel of register buttons and that panel is the
-   only route to a register. That has two consequences: you cannot press STO then
-   a digit as the real device works, and a recall can only ever begin a
-   calculation -- `23 + RCL 1 =` is impossible, because the panel replaces the
-   whole expression.
+   On a real BA II Plus, anything that finishes a calculation also finishes the
+   number being entered. Type `1 + 2 =` and the 3.00 on screen is a result:
+   pressing `4` next starts a new number and shows 4. The same is true after
+   STO, after RCL, and after any of the maths keys.
 
-   This file adds the device's own gestures while KEEPING the panel:
+   The web version keeps the finished value in the entry buffer instead, so `4`
+   extends the result to 34 and `82 STO 2` then `23` becomes 8223. This file
+   restores the device's behaviour, and also adds the STO/RCL gestures the device
+   has and the panel does not:
 
        1234 STO 1        stores 1234 in register 1     (digit, or click the panel)
        RCL 1             brings it back as the entry   (digit, or click the panel)
        23 + RCL 1 =      recalls into a running calculation
        RCL I/Y           recalls a TVM variable rather than overwriting it
 
-   The panel still opens on STO / RCL and still works by clicking a register.
-   Both routes go through the same store/recall here, so they cannot drift apart.
+   Both the panel and the keypad route through the same store()/recallRegister()
+   here, so they cannot drift apart.
 
-   Three behaviours worth knowing, all matching the device:
+   WHAT COUNTS AS COMPLETED, and why the rule differs from CE|C's:
 
-   - STO and RCL are COMPLETED operations. Whatever is typed next starts a fresh
-     entry, so `82 STO 2` then `2` `3` shows 23 rather than 8223.
-   - RCL replaces the entry being typed and keeps what came before it, so with 100
-     in a register, `23+5` recalled becomes `23+100`.
-   - A negative value is bracketed, `23+(-100)`, because the chain evaluator would
-     otherwise read `23+-100` as a subtraction of a negative literal.
+   - After STO, RCL or a result key, the value on screen is REAL. Pressing a digit
+     replaces it (a new number), but pressing an operator must keep it -- it is
+     the left operand. `3` then `+` has to give `3+`, not `0+`.
+   - After CE|C, the value on screen is a placeholder zero that CE put there. That
+     one IS dropped for an operator too, which is why ce_c_behavior.js strips on
+     both. Getting this backwards is what made `RCL I/Y` then `+` show `0+`.
 
    How it reaches the engine: script.js declares its state with top-level
    let/const, which in classic scripts share the global lexical scope, so `MEM`,
@@ -34,8 +36,8 @@
    only when this file has handled it.
 
    Note for anyone tempted to use it: `pendingOp` in script.js looks like it
-   tracks this state and does not. It is assigned by openRegOverlay() and read
-   nowhere. This file keeps its own `pending`, and mirrors it into `pendingOp`
+   tracks the STO/RCL state and does not. It is assigned by openRegOverlay() and
+   read nowhere. This file keeps its own `pending`, and mirrors it into `pendingOp`
    only so the engine's own cancel handler stays consistent.
    ───────────────────────────────────────────────────────────────────────── */
 
@@ -44,14 +46,23 @@
 
   const keypad = document.getElementById("keypad");
   const overlay = document.getElementById("registerOverlay");
+
   const DIGIT = /^[0-9]$/;
+  /* What begins a new entry rather than continuing one. */
+  const STARTS_ENTRY = /^[0-9.]$/;
   const OPERATOR = /^[+\-*/]$/;
+
+  /* Keys that leave a finished number on screen. All of them end with
+     `expression = String(result)` and `setScreen(fmt(result))`. */
+  const RESULT_ACTIONS = new Set([
+    "equals", "percent", "sqrt", "square", "reciprocal", "ln",
+  ]);
 
   /* "sto" or "rcl" while a register is being chosen, null otherwise. */
   let pending = null;
 
-  /* True after a completed STO or RCL: the next digit starts a new entry rather
-     than extending the value that is on screen. */
+  /* True once an operation has finished: the next digit starts a new entry
+     instead of extending the value on screen. */
   let fresh = false;
 
   /* Re-render, then label the status bar. Order matters -- updateDisplay() ends
@@ -88,6 +99,22 @@
     let k = expression.length;
     while (k > 0 && /[\d.]/.test(expression[k - 1])) k--;
     return expression.slice(0, k);
+  };
+
+  /* A digit arrived while the entry was finished: make it start a new number.
+
+     The prefix is kept, so `23+` with a recall pending becomes `23+7` and not
+     `7`. When nothing precedes it the entry is set to "0", which the engine's
+     own appendValue() treats as "replace me" -- giving `7` rather than `07`. */
+  const beginNewEntry = () => {
+    expression = dropEntry() || "0";
+    fresh = false;
+  };
+
+  /* An operator arrived while the entry was finished: the value stays, because it
+     is the left operand. Just stop treating the entry as finished. */
+  const keepEntry = () => {
+    fresh = false;
   };
 
   /* STO n -- keep the value the display resolves to, exactly as currentNum()
@@ -176,15 +203,23 @@
         return;
       }
 
-      /* Type-over: after a completed STO or RCL the next entry starts fresh.
-         Runs before the engine appends, which is why this is the capture phase. */
+      /* The entry is finished. Runs before the engine appends, which is why this
+         is the capture phase. */
       if (fresh) {
-        if (val !== undefined && (DIGIT.test(val) || OPERATOR.test(val))) {
-          expression = dropEntry() || "0";
-          fresh = false;
-        } else if (val === undefined) {
-          fresh = false;
-        }
+        if (val !== undefined && STARTS_ENTRY.test(val)) beginNewEntry();
+        else keepEntry();
+      }
+
+      /* A result key leaves a finished number on screen, so whatever is typed
+         next starts a new entry. Armed here, before the engine evaluates. */
+      if (RESULT_ACTIONS.has(action)) {
+        fresh = true;
+        return;
+      }
+      /* CPT followed by a TVM key solves, which also leaves a result. */
+      if (isCpt && tvmIdOf(btn)) {
+        fresh = true;
+        return;
       }
 
       /* Only the standard calculator has registers to work with; inside a
@@ -232,12 +267,12 @@
       if (e.target.tagName === "INPUT") return;
 
       if (!pending) {
-        if (fresh && (DIGIT.test(e.key) || OPERATOR.test(e.key))) {
-          expression = dropEntry() || "0";
-          fresh = false;
-        } else if (fresh && !DIGIT.test(e.key) && !OPERATOR.test(e.key)) {
-          fresh = false;
+        if (fresh) {
+          if (STARTS_ENTRY.test(e.key)) beginNewEntry();
+          else keepEntry();
         }
+        /* Enter and = evaluate, so they leave a result behind them. */
+        if (e.key === "Enter" || e.key === "=") fresh = true;
         return;
       }
 

@@ -17,7 +17,7 @@ Three checks:
               Two keys are deliberately NOT compared here, because they differ
               on purpose: CE|C (two-stage offline, one-stage upstream) and STO/RCL
               (keypad-driven offline, panel-driven upstream). Each has its own
-              harness, verify_ce_c.py and verify_sto_rcl.py, which assert the
+              harness, verify_ce_c.py and verify_entry_behavior.py, which assert the
               differences. The reset between sequences presses until the display
               reads 0.00 so both builds start from the same state regardless.
   3. offline  the local file is reloaded with every network request aborted at
@@ -56,7 +56,7 @@ LIVE = "https://baiiplusfinancialcalculator.com/"
 #
 # No sequence presses STO or RCL. Those are keypad-driven offline (STO then a
 # digit) and panel-driven upstream, so they are the second deliberate divergence
-# after CE|C and are verified in verify_sto_rcl.py. Leaving them here would make
+# after CE|C and are verified in verify_entry_behavior.py. Leaving them here would make
 # this harness compare the one thing meant to differ.
 SEQUENCES: dict[str, list[tuple[str, str]]] = {
     # --- arithmetic, chain mode (the calculator defaults to Chn) ---------
