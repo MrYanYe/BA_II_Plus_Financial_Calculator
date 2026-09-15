@@ -25,7 +25,9 @@ it covers the pipeline, where each kind of change belongs, and the traps that ar
 ## Quick start
 
 Download `BAII_Plus_Financial_Calculator_Offline_2026.html` and open it. That is the whole
-procedure. It works from a USB stick, an email attachment, a phone's Downloads folder, or a
+procedure.
+
+**Or try it without downloading:** <https://mryanye.github.io/BA_II_Plus_Financial_Calculator/> It works from a USB stick, an email attachment, a phone's Downloads folder, or a
 path with spaces and non-ASCII characters — the file references nothing outside itself.
 
 Verified — not assumed — by [`tools/verify_compatibility.py`](tools/verify_compatibility.py):
@@ -411,7 +413,9 @@ independent web emulation of it, and so is the upstream site.
 
 ## 快速开始
 
-下载 `BAII_Plus_Financial_Calculator_Offline_2026.html` 直接打开，就这么简单。放在U盘里、作为邮件附件、
+下载 `BAII_Plus_Financial_Calculator_Offline_2026.html` 直接打开，就这么简单。
+
+**不想下载的话，可以直接在线试用：** <https://mryanye.github.io/BA_II_Plus_Financial_Calculator/>放在U盘里、作为邮件附件、
 丢进手机下载目录、放在带空格或中文的路径下都能用 —— 这个文件不引用自身之外的任何东西。
 
 由 [`tools/verify_compatibility.py`](tools/verify_compatibility.py) 实测得出，不是口头保证：
