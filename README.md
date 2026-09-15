@@ -13,7 +13,13 @@ A faithful offline copy of the calculator at
 self-contained HTML file. Double-click it and the calculator runs — no server, no install, no
 network.
 
-**The deliverable is one file: [`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html) (215 KB).**
+**Built to be as close to the physical BA II Plus as a browser allows.** Three behaviours the
+website gets wrong are fixed here — recalling a register mid-calculation, two-stage `CE|C`, and a
+finished result ending the entry — and each one has a test. See
+[what this improves on the website](#improvements).
+
+**The deliverable is one file:
+[`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html) (215 KB).**
 
 New here and want to change something? Read the **[Engineering Guide](docs/ENGINEERING_GUIDE.md)** —
 it covers the pipeline, where each kind of change belongs, and the traps that are not obvious.
@@ -64,6 +70,8 @@ Kept:
 Dropped: navbar, carousel, all marketing sections, footer, every ad and analytics tag.
 
 ---
+
+<a id="improvements"></a>
 
 ## What this improves on the website
 
@@ -434,7 +442,12 @@ independent web emulation of it, and so is the upstream site.
 把 [https://baiiplusfinancialcalculator.com/](https://baiiplusfinancialcalculator.com/) 上的计算器
 完整搬到本地，打包成一个自包含的 HTML 文件。双击即用 —— 不需要服务器、不需要安装、不需要联网。
 
-**成品只有一个文件：[`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html)（215 KB）。**
+**目标是做到浏览器所能及的、最接近真机 BA II Plus 的版本。** 原网站做错的三处在这里得到修正 ——
+运算中途调出寄存器、两段式 `CE|C`、以及一次计算结束后输入也随之结束 —— 每一处都有测试覆盖。
+详见[相比原网页的改进](#improvements-zh)。
+
+**成品只有一个文件：
+[`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html)（215 KB）。**
 
 想改动什么？请先读 **[工程指南](docs/ENGINEERING_GUIDE.md)** —— 里面讲了流水线、每类改动该动哪里，
 以及那些不那么明显的坑。
@@ -482,6 +495,8 @@ independent web emulation of it, and so is the upstream site.
 已去除：导航栏、轮播、全部营销板块、页脚、所有广告与统计脚本。
 
 ---
+
+<a id="improvements-zh"></a>
 
 ## 相比原网页的改进
 
