@@ -47,7 +47,7 @@ To run the checks you also need `pip install playwright pillow` and
 | Change how it looks | [`src/offline_overrides.css`](../src/offline_overrides.css) |
 | Change how it behaves | [`src/ce_c_behavior.js`](../src/ce_c_behavior.js) |
 | Change focus / input behaviour | [`src/panel_focus.js`](../src/panel_focus.js) |
-| Change STO / RCL | [`src/sto_rcl_behavior.js`](../src/sto_rcl_behavior.js) |
+| Change STO / RCL, or when an entry ends | [`src/entry_behavior.js`](../src/entry_behavior.js) |
 | Understand the pipeline | [§3 Architecture](#3-architecture) — the stage table |
 | Know what was changed from upstream | [§5 Deliberate deviations](#5-deliberate-deviations) |
 | Know why a check exists | [§6 Verification](#6-verification) |
@@ -214,7 +214,7 @@ the only thing lost is the automatic caret placement.
 
 The STO/RCL overlay has no inputs and was never affected.
 
-### 5.5 STO / RCL on the keypad — `src/sto_rcl_behavior.js` (authored)
+### 5.5 Entry rules and STO / RCL — `src/entry_behavior.js` (authored)
 
 Upstream, `STO` and `RCL` open a panel of register buttons and that panel is the only route to a
 register, so a recall can only ever begin a calculation. The device has no such panel: you press
@@ -229,7 +229,7 @@ The patch suppresses the engine's `sto`/`rcl` handlers in the capture phase and 
 `pending` state. Three behaviours worth knowing, all matching the device:
 
 - `STO` and `RCL` are **completed operations**: the next digit starts a fresh entry, so
-  `82 STO 2` then `2` `3` shows 23 rather than 8223. `verify_sto_rcl.py` checks this.
+  `82 STO 2` then `2` `3` shows 23 rather than 8223. `verify_entry_behavior.py` checks this.
 - `RCL` replaces the entry being typed and keeps the prefix, so with 100 in the register `23+5`
   recalled becomes `23+100`. A negative value is bracketed — `23+(-100)` — because the chain
   evaluator would otherwise read `23+-100` as a subtraction of a negative literal.
@@ -244,6 +244,19 @@ Two things to know if you touch this:
 - **The register overlay is reachable again, and `openRegOverlay()` hides nothing.** So `N` then
   `STO` really does leave the TVM worksheet and the register overlay open together, which is the
   case `.panel-dock` exists to stack. `verify_panel_layout.py` drives exactly that sequence.
+
+#### The other half: a finished calculation ends the entry
+
+Upstream keeps a result in the entry buffer, so `1 + 2 =` then `4` gives 34. On the device the
+3.00 is a finished number and `4` starts a new one. This file arms `fresh` after every key that
+leaves a result on screen — `=`, `√`, `x²`, `1/x`, `ln`, `%`, and a `CPT` solve — and the next
+digit then replaces the entry instead of extending it.
+
+Operators are the opposite case and the reason the flag is not simply "strip the entry". After
+`1 + 2 =` the 3 is the **left operand**, so `* 3 =` must still give 9. The rule is therefore:
+a digit starts a new entry, an operator keeps the value. `ce_c_behavior.js` strips on both,
+because the zero CE leaves behind is a placeholder rather than a value — getting the two
+backwards is what made `RCL N` then `+` display `0+`.
 
 One deliberate difference from the device: `STO` stores the *evaluated display*, via the engine's
 own `currentNum()`, not the partly-typed entry. With `23+4` on screen it stores 27. The engine
@@ -265,7 +278,7 @@ falls back without changing a single character of text).
 | `verify_panel_layout.py` | Panels outside the device, stacked not overlapping, device pinned, live resize | no |
 | `verify_ce_c.py` | The two-stage CE|C, and that worksheets and `CLR WORK` are untouched | no |
 | `verify_panel_focus.py` | No panel steals focus or scrolls the page on open; tapping a field still focuses it | no |
-| `verify_sto_rcl.py` | STO/RCL from both the keypad and the panel: ten registers, mid-expression and TVM recall, fresh entry after a store, cancel paths, Chn and AOS | no |
+| `verify_entry_behavior.py` | STO/RCL from keypad and panel, TVM recall, and the fresh-entry rule after `=`, the maths keys and a store. Ten registers, cancel paths, Chn and AOS | no |
 | `verify_compatibility.py` | Portable paths; works on Chromium/Firefox/WebKit and 5 mobile devices; runs after relocation | no |
 | `check_readme_links.py` | Every in-document link in the README resolves | no |
 
@@ -374,7 +387,7 @@ them; that history is the reason they are not re-introduced.
 | Panel placement or its threshold | `src/offline_overrides.css` | `verify_panel_layout.py` |
 | Calculator behaviour | `src/ce_c_behavior.js` | `verify_ce_c.py` |
 | Focus, or anything a panel does to the page on open | `src/panel_focus.js` | `verify_panel_focus.py` |
-| Register behaviour (STO / RCL) | `src/sto_rcl_behavior.js` | `verify_sto_rcl.py` |
+| Register behaviour (STO / RCL) and entry rules | `src/entry_behavior.js` | `verify_entry_behavior.py` |
 | Which markup survives extraction | `tools/extract_calculator.py` | rebuild; `verify_parity.py` |
 | Pull a newer upstream | `python tools/fetch_upstream.py --force` | full pipeline + both live harnesses |
 
@@ -452,7 +465,7 @@ python tools/build_single_file.py    # build/ -> 成品
 | 改外观 | [`src/offline_overrides.css`](../src/offline_overrides.css) |
 | 改行为 | [`src/ce_c_behavior.js`](../src/ce_c_behavior.js) |
 | 改焦点 / 输入行为 | [`src/panel_focus.js`](../src/panel_focus.js) |
-| 改 STO / RCL | [`src/sto_rcl_behavior.js`](../src/sto_rcl_behavior.js) |
+| 改 STO / RCL，或输入的结束时机 | [`src/entry_behavior.js`](../src/entry_behavior.js) |
 | 理解流水线 | [§3 架构](#3-架构) —— 阶段对照表 |
 | 知道改了上游哪些东西 | [§5 有意为之的偏离](#5-有意为之的偏离) |
 | 知道某个检查为什么存在 | [§6 验证](#6-验证) |
@@ -597,7 +610,7 @@ cmp upstream_raw/script.js build/script.js && echo "逐字节一致"
 
 STO/RCL 寄存器面板没有输入框，本来就不受影响。
 
-### 5.5 键盘上的 STO / RCL —— `src/sto_rcl_behavior.js`（手写）
+### 5.5 输入规则与 STO / RCL —— `src/entry_behavior.js`（手写）
 
 线上 `STO` 与 `RCL` 会弹出寄存器面板，而那个面板是访问寄存器的唯一途径，因此调用只能从一次计算的
 开头开始。真机没有这个面板：按 `STO` 或 `RCL`，再按一个数字键 —— 这正是 `23 + RCL 1 =` 得以
@@ -610,7 +623,7 @@ STO/RCL 寄存器面板没有输入框，本来就不受影响。
 补丁在捕获阶段拦下引擎的 `sto`/`rcl` 处理，自己维护 `pending` 状态。三点与真机一致的行为：
 
 - `STO` 和 `RCL` 都是**已完成的运算**：接下来输入的数字会重新开始一项，所以 `82 STO 2` 之后按
-  `2` `3` 得到 23 而不是 8223。`verify_sto_rcl.py` 会检查这一点。
+  `2` `3` 得到 23 而不是 8223。`verify_entry_behavior.py` 会检查这一点。
 - `RCL` 会替换正在输入的那一项并保留前缀，所以当寄存器里是 100 时，`23+5` 会变成 `23+100`。
   负值会加括号 —— `23+(-100)` —— 否则链式求值器会把 `23+-100` 读成"减去一个负字面量"。
 - `RCL` 后接 TVM 键会调出该变量。若交给引擎处理，它会反过来把屏幕值**存进**该变量，把值抹掉 ——
@@ -624,6 +637,17 @@ STO/RCL 寄存器面板没有输入框，本来就不受影响。
 - **寄存器面板现在又能打开了，而 `openRegOverlay()` 什么都不关。** 所以先按 `N` 再按 `STO` 确实
   会同时打开 TVM 工作表和寄存器面板 —— 这正是 `.panel-dock` 存在的意义。`verify_panel_layout.py`
   驱动的就是这条真实路径。
+
+#### 另一半：一次计算结束，当前输入也随之结束
+
+线上会把结果留在输入缓冲里，所以 `1 + 2 =` 之后按 `4` 会得到 34。真机上那个 3.00 是一个已完成的
+数值，按 `4` 应该开始一个新数。本文件在每一个会留下结果的按键之后置上 `fresh` —— `=`、`√`、`x²`、
+`1/x`、`ln`、`%`，以及 `CPT` 求解 —— 之后输入的数字会替换当前项，而不是接在后面。
+
+运算符是相反的情况，也正是这个标记不能简单写成"总是丢掉当前项"的原因。`1 + 2 =` 之后那个 3 是
+**左操作数**，所以 `* 3 =` 必须仍然是 9。规则因此是：数字键开始新的一项，运算符保留当前值。
+`ce_c_behavior.js` 对两者都做清理，因为 CE 留下的 0 是占位符而不是数值 —— 把这两者搞反，正是
+`RCL N` 之后按 `+` 会显示 `0+` 的原因。
 
 一处与真机有意的差异：`STO` 存的是**屏幕显示值的求值结果**（经由引擎自身的 `currentNum()`），
 而不是正在输入的那一项。屏幕上显示 `23+4` 时会存 27。本引擎显示整个表达式，而真机只显示那个 `4`；
@@ -643,7 +667,7 @@ STO/RCL 寄存器面板没有输入框，本来就不受影响。
 | `verify_panel_layout.py` | 面板在计算器外部、堆叠不重叠、计算器不动、缩放实时切换 | 否 |
 | `verify_ce_c.py` | 两段式 CE|C，且工作表与 `CLR WORK` 未受影响 | 否 |
 | `verify_panel_focus.py` | 打开面板不抢焦点、不滚动页面；点按字段仍能聚焦 | 否 |
-| `verify_sto_rcl.py` | STO/RCL 键盘与面板两种操作：十个寄存器、中途调用与 TVM 调用、存储后重新开始输入、取消路径、Chn 与 AOS | 否 |
+| `verify_entry_behavior.py` | STO/RCL 键盘与面板两种操作、TVM 调用，以及 `=`、各数学键与存储之后的重新开始输入规则。十个寄存器、取消路径、Chn 与 AOS | 否 |
 | `verify_compatibility.py` | 路径可移植；Chromium/Firefox/WebKit 与 5 种移动端可用；换位置后仍正常 | 否 |
 | `check_readme_links.py` | README 中每个文档内链接都能跳转 | 否 |
 
@@ -748,7 +772,7 @@ git checkout develop && git merge --no-ff main    # 回合并
 | 面板位置或阈值 | `src/offline_overrides.css` | `verify_panel_layout.py` |
 | 计算器行为 | `src/ce_c_behavior.js` | `verify_ce_c.py` |
 | 焦点，或面板打开时对页面的任何影响 | `src/panel_focus.js` | `verify_panel_focus.py` |
-| 寄存器行为（STO / RCL） | `src/sto_rcl_behavior.js` | `verify_sto_rcl.py` |
+| 寄存器行为（STO / RCL）与输入规则 | `src/entry_behavior.js` | `verify_entry_behavior.py` |
 | 提取时保留哪些标记 | `tools/extract_calculator.py` | 重新构建；`verify_parity.py` |
 | 拉取更新的上游 | `python tools/fetch_upstream.py --force` | 完整流水线 + 两个联网验证 |
 
