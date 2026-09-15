@@ -383,6 +383,11 @@ RCL 5
 我要准备正式发行了。在我的账号下新创一个github仓库，名字和母工程文件夹一致BA_II_Plus_Financial_Calculator，并填写、添加About和Topics。github的仓库简介要符合字数要求，要别人用中英文都能大概率搜索到这个仓库，得到好的曝光。现在，用SSH向仓库推送所有的分支和tag。
 在最新的tag上发行一个release，添加BAII_Plus_Financial_Calculator_Offline_2026.html文件还有其介绍，同样英中双语。
 
+再把这个html网页上传到仓库的github page
+
+
+
+更新分支和所有文档，中英文要一致。加上github page的链接。加上和原网页相比改进的地方。上传。
 
 
 

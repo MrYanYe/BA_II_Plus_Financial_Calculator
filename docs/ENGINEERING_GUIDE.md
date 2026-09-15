@@ -29,6 +29,9 @@ styling override or one of three small behaviour patches, and all four live in m
 
 ## 2. Orientation — five minutes
 
+There is a published copy if you only want to use it:
+<https://mryanye.github.io/BA_II_Plus_Financial_Calculator/>
+
 ```bash
 git clone <repo> && cd BA_II_Plus_Financial_Calculator
 python tools/extract_calculator.py   # upstream_raw/ -> build/
@@ -464,6 +467,9 @@ site are independent web emulations of it.
 ---
 
 ## 2. 五分钟上手
+
+只使用、不构建的话，这里有线上版本：
+<https://mryanye.github.io/BA_II_Plus_Financial_Calculator/>
 
 ```bash
 git clone <repo> && cd BA_II_Plus_Financial_Calculator
