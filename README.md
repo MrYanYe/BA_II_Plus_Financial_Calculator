@@ -13,7 +13,7 @@ A faithful offline copy of the calculator at
 self-contained HTML file. Double-click it and the calculator runs — no server, no install, no
 network.
 
-**The deliverable is one file: [`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html) (209 KB).**
+**The deliverable is one file: [`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html) (213 KB).**
 
 New here and want to change something? Read the **[Engineering Guide](docs/ENGINEERING_GUIDE.md)** —
 it covers the pipeline, where each kind of change belongs, and the traps that are not obvious.
@@ -159,26 +159,30 @@ This was measured against the live site, not assumed. See [Verification](#verifi
    Every panel with inputs is covered: TVM (via `N`, `I/Y`, `PV`, `PMT` and `FV`) and cash flow
    (via `NPV`). The STO/RCL overlay has no inputs and was never affected.
 
-5. **`STO` and `RCL` are keypad-driven.** Upstream they open a panel of register buttons, and that
-   panel is the only way to reach a register — so a recall can only happen at the start of a
-   calculation, never inside one. Here they work as they do on the device: press `STO` or `RCL`,
-   then a digit.
+5. **`STO` and `RCL` work from the keypad as well as the panel.** Upstream they open a panel of
+   register buttons, and that panel is the only route to a register — so a recall can only ever
+   begin a calculation, never sit inside one. Here the panel is unchanged and still opens, and the
+   device's own gesture works too: press `STO` or `RCL`, then a digit.
 
    | | Upstream | Here |
    |---|---|---|
-   | `1234` `STO` `1` | opens a panel; click register 1 | stores 1234 as register 1 |
+   | `1234` `STO` `1` | opens a panel; click register 1 | press `1`, or click register 1 |
    | `23 + RCL 1 =` | not possible | recalls into the running calculation |
+   | `RCL I/Y` | overwrites I/Y with the display | recalls I/Y's value |
 
-   `RCL` replaces whatever entry is being typed and keeps what came before it, so with 100 in
-   register 1 the example above evaluates `23+100`. A key that is not a digit cancels the pending
-   `STO`/`RCL` and then does its normal job; pressing the same key twice cancels too. `STO` and
-   `RCL` stay out of the worksheet modes, where they mean nothing. The register panel is left in
-   the markup but is no longer reachable.
+   Four details, all matching the device:
 
-   One difference from the device is worth knowing: `STO` stores the **evaluated display**, not
-   the partly-typed entry. With `23+4` on screen it stores 27, because this engine shows the whole
-   expression where a real device shows only the `4` — and that matches what its own TVM keys do.
-   Press `=` first to store the entry on its own.
+   - `STO` and `RCL` are completed operations, so whatever is typed next starts a **fresh entry** —
+     `82 STO 2` then `2` `3` gives 23, not 8223.
+   - `RCL` replaces the entry being typed and keeps what came before it, so with 100 in register 1
+     the second example evaluates `23+100`.
+   - `RCL` followed by a TVM key **recalls** that variable. Upstream stores the display into it
+     instead, wiping the value you asked for.
+   - `STO` stores the **evaluated display**, not the partly-typed entry: `23+4` on screen stores 27,
+     matching what the TVM keys already do. Press `=` first to store the entry alone.
+
+   A key that is not a digit cancels the pending `STO`/`RCL` and then does its own job — which is
+   how `STO` + a TVM key stores into that variable. Pressing the same key twice cancels too.
 
 **One structural change to the markup.** The three panels are wrapped in a single
 `.panel-dock` div, added by the extractor. It is needed because **the panels do not reliably
@@ -311,7 +315,7 @@ Results at the time of writing:
 | Panel placement on live resize | switches both ways without a reload |
 | Panel focus on open (phone + desktop) | no field focused, page does not scroll |
 | Tapping a field | still focuses it and still raises the keyboard |
-| `STO` / `RCL` from the keypad (deliberately different) | ten registers, recall usable mid-expression, cancel paths |
+| `STO` / `RCL` from keypad and panel (deliberately different) | ten registers, mid-expression and TVM recall, fresh entry after a store, cancel paths |
 | Engines — Chromium, Firefox, WebKit | identical display output, 34 states; fonts applied on all three |
 | Mobile — iPhone 13 / SE, iPad, Pixel 5, Galaxy S9+ | no horizontal overflow, taps register, fonts load |
 | Absolute paths in artifact, sources, tools | none |
@@ -361,7 +365,7 @@ independent web emulation of it, and so is the upstream site.
 把 [https://baiiplusfinancialcalculator.com/](https://baiiplusfinancialcalculator.com/) 上的计算器
 完整搬到本地，打包成一个自包含的 HTML 文件。双击即用 —— 不需要服务器、不需要安装、不需要联网。
 
-**成品只有一个文件：[`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html)（209 KB）。**
+**成品只有一个文件：[`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html)（213 KB）。**
 
 想改动什么？请先读 **[工程指南](docs/ENGINEERING_GUIDE.md)** —— 里面讲了流水线、每类改动该动哪里，
 以及那些不那么明显的坑。
@@ -492,23 +496,28 @@ independent web emulation of it, and so is the upstream site.
    所有带输入框的面板都已覆盖：TVM（`N`、`I/Y`、`PV`、`PMT`、`FV`）与现金流（`NPV`）。
    STO/RCL 寄存器面板没有输入框，本来就不受影响。
 
-5. **`STO` 与 `RCL` 改为键盘驱动。** 线上这两个键会弹出一个寄存器面板，而那个面板是访问寄存器的
-   唯一途径 —— 也就意味着调用只能发生在一次计算的开头，无法在中途进行。这里改为与真机一致：
-   按 `STO` 或 `RCL`，再按一个数字键。
+5. **`STO` 与 `RCL` 既可用键盘操作，也保留了面板。** 线上这两个键会弹出一个寄存器面板，而那个
+   面板是访问寄存器的唯一途径 —— 也就意味着调用只能发生在一次计算的开头，无法在中途进行。这里
+   面板原样保留、依然会弹出，同时也支持真机的操作方式：按 `STO` 或 `RCL`，再按一个数字键。
 
    | 操作 | 线上 | 本离线版 |
    |---|---|---|
-   | `1234` `STO` `1` | 弹出面板，点击寄存器 1 | 把 1234 存入寄存器 1 |
+   | `1234` `STO` `1` | 弹出面板，点击寄存器 1 | 按 `1`，或点击寄存器 1 |
    | `23 + RCL 1 =` | 无法做到 | 在运算过程中调用 |
+   | `RCL I/Y` | 用屏幕值覆盖 I/Y | 调出 I/Y 的值 |
 
-   `RCL` 会替换正在输入的那一项，并保留它前面的内容；所以当寄存器 1 存的是 100 时，上面的例子
-   计算的表达式是 `23+100`。按下非数字键会取消待完成的 `STO`/`RCL`，然后该键照常工作；同一个键
-   连按两次也会取消。`STO`/`RCL` 在各工作表模式下不生效（那里没有寄存器）。寄存器面板仍保留在
-   标记中，但已无法打开。
+   四点与真机一致：
 
-   有一处与真机不同，值得知道：`STO` 存的是**屏幕显示值的求值结果**，而不是正在输入的那一项。
-   屏幕上显示 `23+4` 时它会存 27 —— 因为本引擎显示的是整个表达式，而真机只显示那个 `4`；
-   这也与它自己的 TVM 键行为一致。想单独存那一项，先按 `=`。
+   - `STO` 和 `RCL` 都是**已完成的运算**，所以接下来输入的数字会**重新开始一项** ——
+     `82 STO 2` 之后按 `2` `3` 得到 23，而不是 8223。
+   - `RCL` 会替换正在输入的那一项，并保留它前面的内容；所以当寄存器 1 存的是 100 时，第二个例子
+     计算的表达式是 `23+100`。
+   - `RCL` 后接 TVM 键会**调出**该变量。线上则是把屏幕值存进去，会把你想要的值抹掉。
+   - `STO` 存的是**屏幕显示值的求值结果**，而不是正在输入的那一项：屏幕显示 `23+4` 时存 27，
+     与它自己的 TVM 键行为一致。想单独存那一项，先按 `=`。
+
+   按下非数字键会取消待完成的 `STO`/`RCL`，然后该键照常工作 —— `STO` + TVM 键把值存进该变量正是
+   走的这条路。同一个键连按两次也会取消。
 
 **一处结构性改动。** 三个面板被包进一个 `.panel-dock` 容器，由提取脚本添加。之所以需要它，是因为
 **这三个面板并不会可靠地互相隐藏**：`openTVM()` 和 `openCF()` 都会关掉另外两个，但
@@ -635,7 +644,7 @@ python tools/check_readme_links.py   # 本文档自身的跳转链接（纯本�
 | 拖动窗口时的面板位置 | 来回切换均正常，无需刷新 |
 | 打开面板时的焦点（手机 + 桌面） | 无字段被聚焦，页面不滚动 |
 | 手动点按字段 | 仍然聚焦、仍然弹出键盘 |
-| `STO` / `RCL` 键盘操作（有意不同） | 十个寄存器、运算中途可调用、取消路径正常 |
+| `STO` / `RCL` 键盘与面板两种操作（有意不同） | 十个寄存器、中途调用与 TVM 调用、存储后重新开始输入、取消路径正常 |
 | 浏览器 —— Chromium、Firefox、WebKit | 显示输出完全一致（34 个状态）；三者字体均生效 |
 | 移动端 —— iPhone 13 / SE、iPad、Pixel 5、Galaxy S9+ | 无横向溢出、点击有效、字体加载正常 |
 | 成品 / 源码 / 脚本中的绝对路径 | 无 |

@@ -211,12 +211,18 @@ def main() -> int:
         # ---------------- live site ----------------
         print(f"Loading live site: {LIVE}")
         live = browser.new_page(viewport={"width": 1400, "height": 1000})
-                    # domcontentloaded + an explicit wait for the widget, not
-                    # networkidle: the live page runs Google Tag Manager, AdSense
-                    # and Clarity, which keep polling, so the network never goes
-                    # idle and networkidle times out at random.
+        # domcontentloaded, plus an explicit wait for the widget to be styled.
+        # Neither of Playwright's page-level waits suits this page: Tag Manager,
+        # AdSense and Clarity poll continuously so the network never idles, and an
+        # ad resource keeps `load` pending past any sane timeout. What the run
+        # actually needs is the widget present and styled, asserted directly.
         live.goto(LIVE, wait_until="domcontentloaded", timeout=90_000)
         live.wait_for_selector("#screen", timeout=30_000)
+        live.wait_for_function(
+            "() => { const el = document.getElementById('calculator');"
+            " return !!el && getComputedStyle(el).backgroundImage !== 'none'; }",
+            timeout=30_000,
+        )
         live_states = run_sequences(live)
         live_widget = widget_html(live)
         print(f"  captured {len(live_states)} sequences, widget {len(live_widget):,} chars")
