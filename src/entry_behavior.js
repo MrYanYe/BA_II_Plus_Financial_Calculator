@@ -117,10 +117,33 @@
     fresh = false;
   };
 
-  /* STO n -- keep the value the display resolves to, exactly as currentNum()
-     reads it (an evaluated expression, not the raw text). */
+  /* A plain, already-formatted number: "8.00", "-1,234.00", "1.234568e+15". */
+  const PLAIN_NUMBER = /^-?\d+(\.\d+)?(e[+-]?\d+)?$/i;
+
+  /* The value STO stores is the one on the DISPLAY, which is not always what
+     `expression` holds.
+
+     After a TVM key the engine stores the value into that variable and then
+     resets `expression` to "0", while the LCD goes on showing what was stored --
+     so currentNum() reports 0 and `8 N` followed by `STO 1` saves 0 instead of 8.
+     A CPT solve leaves the same shape, which is why a computed FV could not be
+     stored either.
+
+     So read the screen. Fall back to evaluating the expression only when the
+     screen is not a plain number, which is exactly the case while an expression
+     is being typed: the LCD shows "23+4" and the value on it is the evaluated 27. */
+  const displayedNumber = () => {
+    const text = screenEl.textContent.trim().replace(/,/g, "");
+    if (PLAIN_NUMBER.test(text)) {
+      const n = parseFloat(text);
+      if (Number.isFinite(n)) return n;
+    }
+    return currentNum();
+  };
+
+  /* STO n -- keep the value showing on screen. */
   const store = (i) => {
-    const value = currentNum();
+    const value = displayedNumber();
     MEM[i] = Number.isFinite(value) ? value : 0;
     pending = null;
     closePanel();
