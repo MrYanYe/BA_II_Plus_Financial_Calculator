@@ -258,10 +258,16 @@ a digit starts a new entry, an operator keeps the value. `ce_c_behavior.js` stri
 because the zero CE leaves behind is a placeholder rather than a value — getting the two
 backwards is what made `RCL N` then `+` display `0+`.
 
-One deliberate difference from the device: `STO` stores the *evaluated display*, via the engine's
-own `currentNum()`, not the partly-typed entry. With `23+4` on screen it stores 27. The engine
-shows the whole expression where a device shows only the `4`, and this matches what its TVM keys
-already do.
+One thing to know about `STO`: it stores the number **on the display**, and the display is not
+always what the engine's entry buffer holds.
+
+After a TVM key the engine writes the value into that variable and then sets `expression = "0"`,
+while the LCD goes on showing what was stored — so anything reading `currentNum()` would report 0,
+and `8 N` followed by `STO 1` would save 0 instead of 8. A `CPT` solve leaves the same shape, which
+is why a computed `FV` could not be stored either. `displayedNumber()` therefore reads the screen
+and parses it, falling back to evaluating the expression only when the screen is not a plain
+number — which is exactly the case while an expression is being typed, where the LCD shows `23+4`
+and the value on it is the evaluated 27.
 
 ---
 
@@ -649,9 +655,14 @@ STO/RCL 寄存器面板没有输入框，本来就不受影响。
 `ce_c_behavior.js` 对两者都做清理，因为 CE 留下的 0 是占位符而不是数值 —— 把这两者搞反，正是
 `RCL N` 之后按 `+` 会显示 `0+` 的原因。
 
-一处与真机有意的差异：`STO` 存的是**屏幕显示值的求值结果**（经由引擎自身的 `currentNum()`），
-而不是正在输入的那一项。屏幕上显示 `23+4` 时会存 27。本引擎显示整个表达式，而真机只显示那个 `4`；
-这与它自己的 TVM 键行为一致。
+关于 `STO` 有一件事需要知道：它存的是**屏幕上显示的那个数**，而屏幕显示的内容未必等于引擎输入
+缓冲里的内容。
+
+按 TVM 键之后，引擎会把值写进对应变量，随后把 `expression` 置为 `"0"`，而液晶屏仍然显示刚存进去的
+值 —— 于是任何读取 `currentNum()` 的代码都会得到 0，`8 N` 之后 `STO 1` 就会存成 0 而不是 8。
+`CPT` 求解留下的状态形状相同，这正是算出来的 `FV` 也存不进去的原因。因此 `displayedNumber()` 改为
+读取屏幕并解析；只有当屏幕内容不是纯数字时才回退到对表达式求值 —— 那正好是正在输入表达式的情形：
+屏幕显示 `23+4`，其值为求值后的 27。
 
 ---
 

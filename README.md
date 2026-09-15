@@ -13,7 +13,7 @@ A faithful offline copy of the calculator at
 self-contained HTML file. Double-click it and the calculator runs — no server, no install, no
 network.
 
-**The deliverable is one file: [`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html) (214 KB).**
+**The deliverable is one file: [`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html) (215 KB).**
 
 New here and want to change something? Read the **[Engineering Guide](docs/ENGINEERING_GUIDE.md)** —
 it covers the pipeline, where each kind of change belongs, and the traps that are not obvious.
@@ -178,8 +178,12 @@ This was measured against the live site, not assumed. See [Verification](#verifi
      the second example evaluates `23+100`.
    - `RCL` followed by a TVM key **recalls** that variable. Upstream stores the display into it
      instead, wiping the value you asked for.
-   - `STO` stores the **evaluated display**, not the partly-typed entry: `23+4` on screen stores 27,
-     matching what the TVM keys already do. Press `=` first to store the entry alone.
+   - `STO` stores the number **on the display**, which is not always what the engine's entry
+     buffer holds. After a TVM key the engine stores the value into that variable and resets its
+     buffer to zero while the LCD keeps showing what was stored — so `8` `N` then `STO 1` saves 8,
+     and a computed `FV` can be stored the same way. While an expression is being typed the
+     display reads `23+4`, and that is stored as its value, 27; press `=` first to store the
+     entry alone.
 
    A key that is not a digit cancels the pending `STO`/`RCL` and then does its own job — which is
    how `STO` + a TVM key stores into that variable. Pressing the same key twice cancels too.
@@ -374,7 +378,7 @@ independent web emulation of it, and so is the upstream site.
 把 [https://baiiplusfinancialcalculator.com/](https://baiiplusfinancialcalculator.com/) 上的计算器
 完整搬到本地，打包成一个自包含的 HTML 文件。双击即用 —— 不需要服务器、不需要安装、不需要联网。
 
-**成品只有一个文件：[`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html)（214 KB）。**
+**成品只有一个文件：[`BAII_Plus_Financial_Calculator_Offline_2026.html`](BAII_Plus_Financial_Calculator_Offline_2026.html)（215 KB）。**
 
 想改动什么？请先读 **[工程指南](docs/ENGINEERING_GUIDE.md)** —— 里面讲了流水线、每类改动该动哪里，
 以及那些不那么明显的坑。
@@ -522,8 +526,10 @@ independent web emulation of it, and so is the upstream site.
    - `RCL` 会替换正在输入的那一项，并保留它前面的内容；所以当寄存器 1 存的是 100 时，第二个例子
      计算的表达式是 `23+100`。
    - `RCL` 后接 TVM 键会**调出**该变量。线上则是把屏幕值存进去，会把你想要的值抹掉。
-   - `STO` 存的是**屏幕显示值的求值结果**，而不是正在输入的那一项：屏幕显示 `23+4` 时存 27，
-     与它自己的 TVM 键行为一致。想单独存那一项，先按 `=`。
+   - `STO` 存的是**屏幕上显示的那个数**，它未必等于引擎输入缓冲里的内容。按 TVM 键之后，引擎会把
+     值存进对应变量并把缓冲重置为 0，而液晶屏仍显示刚存进去的值 —— 所以 `8` `N` 之后 `STO 1` 存的是
+     8，算出来的 `FV` 也可以用同样方式存下来。当屏幕上是一个正在输入的表达式（如 `23+4`）时，存的是
+     它的求值结果 27；想单独存那一项，先按 `=`。
 
    按下非数字键会取消待完成的 `STO`/`RCL`，然后该键照常工作 —— `STO` + TVM 键把值存进该变量正是
    走的这条路。同一个键连按两次也会取消。

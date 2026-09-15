@@ -28,6 +28,11 @@ Checks, following the flows in the request:
                 panel alone could never do -- it replaced the whole expression.
   5. tvm        `RCL I/Y` recalls the TVM variable instead of overwriting it with
                 the display, which is what upstream does. Covers all five.
+  5b. display   STO stores the number on screen, which is not always what the
+                engine's entry buffer holds: after a TVM key it stores into that
+                variable and resets `expression` to "0" while the LCD keeps showing
+                the value, so `8 N` then `STO 1` must save 8 and not 0. A CPT solve
+                leaves the same shape.
   6. registers  Ten separate registers, and they do not alias each other.
   7. clear      `0 STO 1` empties a register.
   8. store-mid  STO mid-expression stores the evaluated display, as the TVM keys
@@ -319,6 +324,59 @@ def main() -> int:
         keys(page, ("v", "6"), ("a", "equals"))
         page.wait_for_timeout(150)
         check("then 6 =", screen(page), "11.00")
+
+        # ---------- 5b: STO stores what the DISPLAY shows ----------
+        print("\n=== 5b. STO stores the displayed value ===")
+        reset(page)
+        key(page, "v", "8")
+        tvm_key(page, "n")
+        page.wait_for_timeout(250)
+        page.evaluate("document.getElementById('tvmClose').click()")
+        hide_panels(page)
+        page.wait_for_timeout(150)
+        # The engine writes 8 into N and resets `expression` to "0"; the LCD shows
+        # 8.00. Reading the expression would save 0.
+        keys(page, ("a", "sto"), ("v", "1"))
+        page.wait_for_timeout(200)
+        check("8 then N then STO 1", page.evaluate("MEM[1]"), 8)
+
+        reset(page)
+        # N=10, I/Y=5, PV=-1000, PMT=0, then CPT FV
+        type_number(page, "10")
+        tvm_key(page, "n")
+        page.wait_for_timeout(150)
+        type_number(page, "5")
+        tvm_key(page, "iy")
+        page.wait_for_timeout(150)
+        type_number(page, "1000")
+        key(page, "a", "plusMinus")
+        tvm_key(page, "pv")
+        page.wait_for_timeout(150)
+        type_number(page, "0")
+        tvm_key(page, "pmt")
+        page.wait_for_timeout(150)
+        key(page, "a", "cpt")
+        page.wait_for_timeout(100)
+        tvm_key(page, "fv")
+        page.wait_for_timeout(300)
+        fv_shown = page.evaluate("document.getElementById('tvmFV').value")
+        keys(page, ("a", "sto"), ("v", "1"))
+        page.wait_for_timeout(200)
+        stored_fv = page.evaluate("MEM[1]")
+        if fv_shown and abs(stored_fv - float(fv_shown.replace(",", ""))) < 0.005:
+            print(f"  PASS  CPT FV then STO 1 stored {stored_fv} (display showed {fv_shown})")
+        else:
+            failures.append(f"CPT FV then STO 1 stored {stored_fv}, display showed {fv_shown!r}")
+            print(f"  FAIL  CPT FV then STO 1 stored {stored_fv}, display showed {fv_shown!r}")
+
+        print("\n--- and the unchanged cases still hold ---")
+        reset(page)
+        type_number(page, "23")
+        keys(page, ("v", "+"), ("v", "4"))
+        keys(page, ("a", "sto"), ("v", "2"))
+        page.wait_for_timeout(200)
+        # "23+4" is not a plain number, so the expression is evaluated: 27.
+        check("23+4 STO 2 (unevaluated display)", page.evaluate("MEM[2]"), 27)
 
         # ---------- 6: ten registers, no aliasing ----------
         print("\n=== 6. ten independent registers ===")
